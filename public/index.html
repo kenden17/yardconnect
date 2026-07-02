@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YardConnect — Students Meet Homeowners</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <header class="nav" id="mainNav">
+    <a href="/" class="nav__logo">Yard<span>Connect</span></a>
+    <nav class="nav__links" id="navLinks">
+      <a href="/#how-it-works">How it Works</a>
+      <a href="/#jobs">Browse Jobs</a>
+    </nav>
+    <div class="nav__auth" id="navAuth">
+      <a href="/login.html" class="btn btn--ghost">Log In</a>
+      <a href="/register.html" class="btn btn--accent">Sign Up</a>
+    </div>
+    <div class="nav__user hidden" id="navUser">
+      <a href="/dashboard.html" class="btn btn--ghost">Dashboard</a>
+      <button class="btn btn--outline" id="logoutBtn">Log Out</button>
+    </div>
+    <button class="nav__hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- MOBILE DRAWER -->
+  <div class="nav__drawer" id="navDrawer">
+    <a href="/#how-it-works">How it Works</a>
+    <a href="/#jobs">Browse Jobs</a>
+    <a href="/login.html">Log In</a>
+    <a href="/register.html" class="accent">Sign Up Free</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero__bg"></div>
+    <div class="hero__content">
+      <div class="hero__eyebrow">Local Work. Real Pay. School Verified.</div>
+      <h1 class="hero__title">
+        Students. Jobs.<br /><span class="accent-text">Connected.</span>
+      </h1>
+      <p class="hero__sub">
+        YardConnect links high school students with nearby homeowners who need work done —
+        yard maintenance, moving help, cleaning, and more. Students earn, homeowners relax.
+      </p>
+      <div class="hero__cta">
+        <a href="/register.html?role=student" class="btn btn--accent btn--lg">I'm a Student →</a>
+        <a href="/register.html?role=homeowner" class="btn btn--outline btn--lg">I'm a Homeowner →</a>
+      </div>
+      <p class="hero__note">Students must register with a school or k12 email address.</p>
+    </div>
+    <div class="hero__stats">
+      <div class="hero__stat"><span class="num">100%</span><span class="lbl">School Verified</span></div>
+      <div class="hero__stat"><span class="num">Local</span><span class="lbl">Jobs Only</span></div>
+      <div class="hero__stat"><span class="num">Secure</span><span class="lbl">Stripe Payments</span></div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how-it-works">
+    <div class="container">
+      <div class="section-label">How It Works</div>
+      <h2 class="section-title">Simple as 1 – 2 – 3</h2>
+      <div class="how__grid">
+        <div class="how__col">
+          <div class="how__badge">For Students</div>
+          <div class="step">
+            <div class="step__num">1</div>
+            <div>
+              <h3>Sign Up with School Email</h3>
+              <p>Register using your k12 or school email. We verify your address to keep the platform safe.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step__num">2</div>
+            <div>
+              <h3>Browse & Apply</h3>
+              <p>Find jobs near you — mowing, raking, hauling, cleaning. Apply with a short message.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step__num">3</div>
+            <div>
+              <h3>Do the Work. Get Paid.</h3>
+              <p>Complete the job. The homeowner releases payment directly to you via Stripe.</p>
+            </div>
+          </div>
+        </div>
+        <div class="how__divider"></div>
+        <div class="how__col">
+          <div class="how__badge how__badge--alt">For Homeowners</div>
+          <div class="step">
+            <div class="step__num">1</div>
+            <div>
+              <h3>Post a Job</h3>
+              <p>Describe what you need done, set a fair pay amount, and publish your listing.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step__num">2</div>
+            <div>
+              <h3>Review Applicants</h3>
+              <p>See who applied and pick the right student for the job. All students are school-verified.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step__num">3</div>
+            <div>
+              <h3>Pay Securely</h3>
+              <p>Once the job is done, release payment through our secure Stripe integration.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BROWSE JOBS -->
+  <section class="jobs-section" id="jobs">
+    <div class="container">
+      <div class="section-label">Open Jobs</div>
+      <h2 class="section-title">Work Near You</h2>
+
+      <div class="jobs-filter">
+        <select id="filterCategory" aria-label="Filter by category">
+          <option value="">All Categories</option>
+          <option value="Yard Work">Yard Work</option>
+          <option value="Moving & Hauling">Moving &amp; Hauling</option>
+          <option value="Cleaning">Cleaning</option>
+          <option value="Snow Removal">Snow Removal</option>
+          <option value="Pet Care">Pet Care</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="text" id="filterCity" placeholder="City" aria-label="Filter by city" />
+        <input type="text" id="filterZip"  placeholder="ZIP code" aria-label="Filter by ZIP" maxlength="5" />
+        <button class="btn btn--accent" id="filterBtn">Search</button>
+      </div>
+
+      <div class="jobs-grid" id="jobsGrid">
+        <div class="loading-state">Loading jobs…</div>
+      </div>
+      <div class="jobs-pagination" id="jobsPagination"></div>
+    </div>
+  </section>
+
+  <!-- TRUST SECTION -->
+  <section class="trust">
+    <div class="container trust__inner">
+      <div class="trust__item">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <h3>School Verified</h3>
+        <p>Every student account requires a verified k12 or school email — no exceptions.</p>
+      </div>
+      <div class="trust__item">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        <h3>Secure Payments</h3>
+        <p>All transactions run through Stripe. We never store card numbers on our servers.</p>
+      </div>
+      <div class="trust__item">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <h3>Local & Fast</h3>
+        <p>Jobs and students are matched by ZIP code so everything stays close to home.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span class="footer__logo">YardConnect</span>
+        <p>Connecting students and homeowners, one job at a time.</p>
+      </div>
+      <div class="footer__cols">
+        <div>
+          <h4>Platform</h4>
+          <a href="/#how-it-works">How It Works</a>
+          <a href="/#jobs">Browse Jobs</a>
+          <a href="/register.html">Sign Up</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="/terms.html">Terms of Service</a>
+          <a href="/privacy.html">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom container">
+      <span>© 2026 YardConnect. All rights reserved.</span>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/home.js"></script>
+</body>
+</html>

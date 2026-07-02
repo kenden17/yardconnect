@@ -1,0 +1,28 @@
+{
+  "name": "yardwork-connect",
+  "version": "1.0.0",
+  "description": "Connects high school students to homeowners for local jobs",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "2.4.3",
+    "better-sqlite3": "9.4.3",
+    "cookie-parser": "1.4.6",
+    "cors": "2.8.5",
+    "dotenv": "16.4.5",
+    "express": "4.18.3",
+    "express-rate-limit": "7.2.0",
+    "express-validator": "7.0.1",
+    "helmet": "7.1.0",
+    "jsonwebtoken": "9.0.2",
+    "nodemailer": "6.9.13",
+    "stripe": "14.21.0",
+    "uuid": "9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "3.1.0"
+  }
+}
