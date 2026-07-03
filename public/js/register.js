@@ -1,5 +1,11 @@
 // public/js/register.js
 document.addEventListener('DOMContentLoaded', () => {
+  // Redirect already-logged-in users straight to dashboard
+  if (Auth.isLoggedIn()) {
+    window.location.href = '/dashboard.html';
+    return;
+  }
+
   const emailInput = document.getElementById('email');
   const emailHint  = document.getElementById('emailHint');
   const pwInput    = document.getElementById('password');
@@ -8,6 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const errorEl    = document.getElementById('registerError');
   const successEl  = document.getElementById('registerSuccess');
   const submitBtn  = document.getElementById('registerBtn');
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+    errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideError() {
+    errorEl.classList.add('hidden');
+  }
 
   // Live email hint
   emailInput.addEventListener('input', () => {
@@ -33,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    errorEl.classList.add('hidden');
+    hideError();
     successEl.classList.add('hidden');
 
     const name  = document.getElementById('name').value.trim();
@@ -41,13 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = emailInput.value.trim();
     const pw    = pwInput.value;
 
-    if (!name || !dob || !email || !pw) {
-      errorEl.textContent = 'Please fill in all fields.';
-      errorEl.classList.remove('hidden');
-      return;
-    }
+    // Client-side validation before hitting the server
+    if (!name)  { showError('Full name is required.'); return; }
+    if (!dob)   { showError('Date of birth is required.'); return; }
+    if (!email) { showError('Email address is required.'); return; }
+    if (!pw)    { showError('Password is required.'); return; }
+    if (pw.length < 8)        { showError('Password must be at least 8 characters.'); return; }
+    if (!/[A-Z]/.test(pw))   { showError('Password must contain at least one uppercase letter.'); return; }
+    if (!/[0-9]/.test(pw))   { showError('Password must contain at least one number.'); return; }
 
-    submitBtn.disabled = true;
+    submitBtn.disabled    = true;
     submitBtn.textContent = 'Creating account…';
 
     try {
@@ -55,10 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
       Auth.setSession(token, user);
       window.location.href = '/dashboard.html';
     } catch (err) {
-      errorEl.textContent = err.message;
-      errorEl.classList.remove('hidden');
-    } finally {
-      submitBtn.disabled = false;
+      showError(err.message || 'Registration failed. Please try again.');
+      submitBtn.disabled    = false;
       submitBtn.textContent = 'Create Account';
     }
   });

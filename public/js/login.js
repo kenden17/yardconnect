@@ -1,5 +1,11 @@
 // public/js/login.js
 document.addEventListener('DOMContentLoaded', () => {
+  // Redirect already-logged-in users straight to dashboard
+  if (Auth.isLoggedIn()) {
+    window.location.href = '/dashboard.html';
+    return;
+  }
+
   const form      = document.getElementById('loginForm');
   const errorEl   = document.getElementById('loginError');
   const submitBtn = document.getElementById('loginBtn');
@@ -10,6 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('verifiedAlert')?.classList.remove('hidden');
   }
 
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+    errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     errorEl.classList.add('hidden');
@@ -18,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('password').value;
 
     if (!email || !password) {
-      errorEl.textContent = 'Please fill in all fields.';
-      errorEl.classList.remove('hidden');
+      showError('Please fill in all fields.');
       return;
     }
 
@@ -31,8 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
       Auth.setSession(token, user);
       window.location.href = '/dashboard.html';
     } catch (err) {
-      errorEl.textContent = err.message;
-      errorEl.classList.remove('hidden');
+      showError(err.message || 'Login failed. Please try again.');
       submitBtn.disabled    = false;
       submitBtn.textContent = 'Log In';
     }
