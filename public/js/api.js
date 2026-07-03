@@ -24,11 +24,13 @@ const API = (() => {
     logout:   ()                => request('POST', '/auth/logout'),
     me:       ()                => request('GET',  '/auth/me'),
 
-    // Tasks / Jobs
+    // Jobs / Tasks
     getJobs:       (params = {}) => request('GET', '/jobs?' + new URLSearchParams(params).toString()),
     getCategories: ()            => request('GET', '/jobs/categories'),
     postJob:       (data)        => request('POST', '/jobs', data),
     myJobsStudent: ()            => request('GET', '/jobs/mine/student'),
+    markComplete:  (jobId, posterEmail) => request('POST', `/jobs/${jobId}/mark-complete`, { poster_email: posterEmail }),
+    rateJob:       (jobId, data)        => request('POST', `/jobs/${jobId}/rate`, data),
 
     // Applications (student applies)
     apply: (job_id, message) => request('POST', '/applications', { job_id, message }),

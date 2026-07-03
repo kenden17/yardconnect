@@ -394,3 +394,37 @@ input, select, textarea { font-family: inherit; }
   .jobs-filter { flex-direction: column; }
   .hero__cta { flex-direction: column; }
 }
+
+/* ── Liability / Terms ───────────────────────────────────── */
+.liability-notice {
+  background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.35);
+  border-radius: var(--radius); padding: 14px 18px; font-size: .88rem;
+  line-height: 1.6; color: #fca5a5; margin-bottom: 28px;
+}
+.terms-box {
+  background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.25);
+  border-radius: var(--radius); padding: 16px 18px; font-size: .87rem;
+  line-height: 1.7; color: var(--white);
+}
+.terms-box p  { margin-bottom: 8px; }
+.terms-box ul { padding-left: 18px; margin-bottom: 12px; }
+.terms-box ul li { margin-bottom: 5px; color: var(--dim); }
+.agree-label  { display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+                font-size: .87rem; font-weight: 600; margin-top: 4px; }
+.agree-label input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;
+                                       accent-color: var(--accent); cursor: pointer; }
+.form-section-label { font-size: .72rem; font-weight: 700; letter-spacing: .18em;
+                       text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+                       padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+/* ── Star Rating ─────────────────────────────────────────── */
+.star-picker { display: flex; gap: 8px; }
+.star-btn {
+  font-size: 2rem; color: rgba(245,245,240,.2); transition: color .15s, transform .15s;
+  line-height: 1; padding: 0;
+}
+.star-btn:hover, .star-btn.active { color: #fcd34d; transform: scale(1.15); }
+.star-hint { font-size: .82rem; color: var(--dim); min-height: 1.2em; }
+
+/* status-pending_review badge */
+.status-pending_review { background: rgba(168,85,247,.15); color: #d8b4fe; }

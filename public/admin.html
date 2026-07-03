@@ -56,28 +56,40 @@
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="students">Students</button>
       <button class="tab-btn" data-tab="tasks">Tasks</button>
+      <button class="tab-btn" data-tab="ratings">Ratings</button>
     </div>
 
     <div class="tab-panel active" id="tab-students">
       <div class="table-wrap">
-        <table class="admin-table" id="usersTable">
+        <table class="admin-table">
           <thead><tr>
-            <th>Name</th><th>Email</th><th>Applications</th>
+            <th>Name</th><th>Email</th><th>Rating</th><th>Applications</th>
             <th>Completed</th><th>Joined</th><th></th>
           </tr></thead>
-          <tbody id="usersBody"><tr><td colspan="6" class="loading-state">Loading…</td></tr></tbody>
+          <tbody id="usersBody"><tr><td colspan="7" class="loading-state">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
 
     <div class="tab-panel" id="tab-tasks">
       <div class="table-wrap">
-        <table class="admin-table" id="tasksTable">
+        <table class="admin-table">
           <thead><tr>
             <th>Title</th><th>Category</th><th>Pay</th><th>City</th>
-            <th>Status</th><th>Posted By</th><th>Apps</th><th>Date</th><th></th>
+            <th>Status</th><th>Poster</th><th>ID Info</th><th>Apps</th><th>Date</th><th></th>
           </tr></thead>
-          <tbody id="tasksBody"><tr><td colspan="9" class="loading-state">Loading…</td></tr></tbody>
+          <tbody id="tasksBody"><tr><td colspan="10" class="loading-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-ratings">
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Task</th><th>Student</th><th>Rated By</th><th>Stars</th><th>Comment</th><th>Date</th>
+          </tr></thead>
+          <tbody id="ratingsBody"><tr><td colspan="6" class="loading-state">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -123,6 +135,7 @@
         <tr>
           <td><strong>${escHtml(u.name)}</strong></td>
           <td style="color:var(--dim)">${escHtml(u.email)}</td>
+          <td style="color:#fcd34d">${u.avg_rating ? '★ ' + u.avg_rating + ' (' + u.rating_count + ')' : '—'}</td>
           <td>${u.app_count}</td>
           <td>${u.jobs_completed}</td>
           <td style="color:var(--dim)">${fmt(u.created_at)}</td>
@@ -131,7 +144,7 @@
               Delete
             </button>
           </td>
-        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">No students yet.</td></tr>';
+        </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No students yet.</td></tr>';
 
       document.querySelectorAll('.del-user').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -151,7 +164,15 @@
           <td style="color:var(--accent)">$${Number(t.pay).toFixed(2)}</td>
           <td style="color:var(--dim)">${escHtml(t.city)}, ${escHtml(t.state)}</td>
           <td><span class="badge badge-${t.status}">${t.status}</span></td>
-          <td>${escHtml(t.poster_name)}<br/><span style="font-size:.75rem;color:var(--dim)">${escHtml(t.poster_email)}</span></td>
+          <td>
+            <strong>${escHtml(t.poster_name)}</strong><br/>
+            <span style="font-size:.75rem;color:var(--dim)">${escHtml(t.poster_email)}</span><br/>
+            <span style="font-size:.75rem;color:var(--dim)">${escHtml(t.poster_phone||'')}</span>
+          </td>
+          <td style="font-size:.78rem;color:var(--dim)">
+            ${escHtml(t.poster_id_type||'')}<br/>${escHtml(t.poster_id_num||'')}<br/>
+            DOB: ${escHtml(t.poster_dob||'')}<br/>${escHtml(t.poster_address||'')}
+          </td>
           <td>${t.app_count}</td>
           <td style="color:var(--dim)">${fmt(t.created_at)}</td>
           <td>
@@ -159,7 +180,7 @@
               Delete
             </button>
           </td>
-        </tr>`).join('') : '<tr><td colspan="9" class="empty-state">No tasks yet.</td></tr>';
+        </tr>`).join('') : '<tr><td colspan="10" class="empty-state">No tasks yet.</td></tr>';
 
       document.querySelectorAll('.del-task').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -170,6 +191,19 @@
       });
     }
 
+    async function loadRatings() {
+      const { ratings } = await api('/ratings');
+      document.getElementById('ratingsBody').innerHTML = ratings.length ? ratings.map(r => `
+        <tr>
+          <td><strong>${escHtml(r.job_title)}</strong></td>
+          <td>${escHtml(r.student_name)}</td>
+          <td style="color:var(--dim)">${r.rated_by === 'poster' ? '👤 Poster' : '🎓 Student'}</td>
+          <td style="color:#fcd34d">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</td>
+          <td style="color:var(--dim);font-size:.85rem">${escHtml(r.comment||'—')}</td>
+          <td style="color:var(--dim)">${fmt(r.created_at)}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">No ratings yet.</td></tr>';
+    }
+
     // Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -177,6 +211,7 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'ratings') loadRatings();
       });
     });
 
@@ -185,7 +220,6 @@
       location.href = '/';
     });
 
-    // Load everything
     Promise.all([loadStats(), loadUsers(), loadTasks()]).catch(err => {
       if (err.message === 'Unauthorized.') {
         alert('Wrong admin code. Access denied.');

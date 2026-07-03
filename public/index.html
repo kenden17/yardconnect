@@ -17,6 +17,7 @@
       <a href="/#how-it-works">How it Works</a>
       <a href="/#post-task">Post a Task</a>
       <a href="/#tasks">Browse Tasks</a>
+      <a href="/manage.html">Manage My Task</a>
     </nav>
     <div class="nav__auth" id="navAuth">
       <a href="/login.html" class="btn btn--ghost">Student Login</a>
@@ -35,6 +36,7 @@
     <a href="/#how-it-works">How it Works</a>
     <a href="/#post-task">Post a Task</a>
     <a href="/#tasks">Browse Tasks</a>
+    <a href="/manage.html">Manage My Task</a>
     <a href="/login.html">Student Login</a>
     <a href="/register.html" class="accent">Join as Student</a>
   </div>
@@ -128,64 +130,125 @@
     <div class="container">
       <div class="section-label">No Account Needed</div>
       <h2 class="section-title">Post a Task</h2>
+
+      <div class="liability-notice">
+        <strong>⚠️ Identity &amp; Liability Notice</strong><br />
+        Campus Hands connects you with minors. By posting a task, you agree that the
+        information below is accurate and that you are solely responsible for maintaining
+        a safe environment. This information is securely stored and may be shared with
+        law enforcement if any incident is reported.
+      </div>
+
       <form class="post-form" id="postTaskForm" novalidate>
+
+        <!-- SECTION 1: Identity -->
+        <div class="form-section-label">Your Identity (required)</div>
         <div class="form-row">
           <div class="form-group">
-            <label for="posterName">Your Name</label>
-            <input type="text" id="posterName" placeholder="Jane Smith" required />
+            <label for="posterName">Full Legal Name *</label>
+            <input type="text" id="posterName" placeholder="Jane A. Smith" required autocomplete="name" />
           </div>
           <div class="form-group">
-            <label for="posterEmail">Your Email</label>
-            <input type="email" id="posterEmail" placeholder="you@email.com" required />
-            <span class="field-hint">Students will contact you here.</span>
+            <label for="posterDob">Date of Birth *</label>
+            <input type="date" id="posterDob" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="posterEmail">Email Address *</label>
+            <input type="email" id="posterEmail" placeholder="you@email.com" required autocomplete="email" />
+            <span class="field-hint">Students and Campus Hands will contact you here.</span>
+          </div>
+          <div class="form-group">
+            <label for="posterPhone">Phone Number *</label>
+            <input type="tel" id="posterPhone" placeholder="(555) 000-0000" required autocomplete="tel" />
           </div>
         </div>
         <div class="form-group">
-          <label for="posterPhone">Phone (optional)</label>
-          <input type="tel" id="posterPhone" placeholder="(555) 000-0000" />
+          <label for="posterAddress">Your Home Address *</label>
+          <input type="text" id="posterAddress" placeholder="123 Main St, City, State 00000" required autocomplete="street-address" />
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="taskTitle">Task Title</label>
+            <label for="posterIdType">Government-Issued ID Type *</label>
+            <select id="posterIdType" required>
+              <option value="">Select…</option>
+              <option>Driver's License</option>
+              <option>State ID</option>
+              <option>Passport</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="posterIdNum">ID Number *</label>
+            <input type="text" id="posterIdNum" placeholder="ID number" required />
+            <span class="field-hint">Stored securely. Only disclosed if required by law.</span>
+          </div>
+        </div>
+
+        <!-- SECTION 2: Task Details -->
+        <div class="form-section-label" style="margin-top:8px">Task Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="taskTitle">Task Title *</label>
             <input type="text" id="taskTitle" placeholder="e.g. Help move boxes to storage" required maxlength="100" />
           </div>
           <div class="form-group">
-            <label for="taskCategory">Category</label>
+            <label for="taskCategory">Category *</label>
             <select id="taskCategory" required>
               <option value="">Select…</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label for="taskDesc">Description</label>
-          <textarea id="taskDesc" rows="4" placeholder="Describe the task, how long it might take, anything the student should know…" required maxlength="1000"></textarea>
+          <label for="taskDesc">Description *</label>
+          <textarea id="taskDesc" rows="4" placeholder="Describe the task, how long it might take, tools or equipment provided, anything the student should know…" required maxlength="1000"></textarea>
           <span class="field-hint" id="taskDescCount">0 / 1000</span>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="taskPay">Pay ($)</label>
+            <label for="taskPay">Pay ($) *</label>
             <input type="number" id="taskPay" placeholder="20" min="5" max="2000" step="1" required />
             <span class="field-hint">Students receive 95% after platform fee.</span>
           </div>
           <div class="form-group">
-            <label for="taskAddress">Street Address</label>
+            <label for="taskAddress">Task Street Address *</label>
             <input type="text" id="taskAddress" placeholder="123 Main St" required />
           </div>
         </div>
         <div class="form-row three-col">
           <div class="form-group">
-            <label for="taskCity">City</label>
+            <label for="taskCity">City *</label>
             <input type="text" id="taskCity" required />
           </div>
           <div class="form-group">
-            <label for="taskState">State</label>
+            <label for="taskState">State *</label>
             <input type="text" id="taskState" placeholder="TX" maxlength="2" required />
           </div>
           <div class="form-group">
-            <label for="taskZip">ZIP</label>
+            <label for="taskZip">ZIP *</label>
             <input type="text" id="taskZip" placeholder="78701" maxlength="5" required />
           </div>
         </div>
+
+        <!-- Terms of Responsibility -->
+        <div class="terms-box">
+          <p><strong>Terms of Responsibility</strong></p>
+          <p>By posting this task, I confirm that:</p>
+          <ul>
+            <li>All information I have provided is accurate and truthful.</li>
+            <li>I am 18 years of age or older.</li>
+            <li>I understand that I am hiring a minor and I am solely responsible for providing a safe working environment.</li>
+            <li>I will not ask the student to perform any illegal, dangerous, or inappropriate activity.</li>
+            <li>I consent to my identity information being retained and disclosed to law enforcement if any incident is reported.</li>
+            <li>Campus Hands is a platform only and bears no liability for any interactions between myself and the student.</li>
+          </ul>
+          <label class="agree-label">
+            <input type="checkbox" id="posterAgreed" required />
+            <span>I have read and agree to the Terms of Responsibility above. *</span>
+          </label>
+        </div>
+
         <div class="alert alert--error hidden" id="postTaskError" role="alert"></div>
         <div class="alert alert--success hidden" id="postTaskSuccess" role="status"></div>
         <button type="submit" class="btn btn--accent btn--lg" id="postTaskBtn">Post Task →</button>

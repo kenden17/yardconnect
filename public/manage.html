@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Task — Campus Hands</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body class="auth-page" style="justify-content:flex-start;padding-top:48px">
+
+  <a href="/" class="auth-back">← Back to Campus Hands</a>
+
+  <main class="auth-wrap" style="max-width:600px;padding-top:40px">
+    <div class="auth-card" style="width:100%">
+      <a href="/" class="auth-logo">Campus<span>Hands</span></a>
+      <h1 class="auth-title" id="manageTitle">Manage Task</h1>
+
+      <!-- Lookup form -->
+      <div id="lookupSection">
+        <p class="auth-sub">Enter your email and task ID to manage your posting.</p>
+        <form id="lookupForm" class="auth-form" novalidate>
+          <div class="form-group">
+            <label for="lookupEmail">Your Email</label>
+            <input type="email" id="lookupEmail" placeholder="you@email.com" required />
+          </div>
+          <div class="form-group">
+            <label for="lookupJobId">Task ID</label>
+            <input type="text" id="lookupJobId" placeholder="Paste your task ID here" required />
+            <span class="field-hint">Shown when you posted the task.</span>
+          </div>
+          <div class="alert alert--error hidden" id="lookupError" role="alert"></div>
+          <button type="submit" class="btn btn--accent btn--full">Look Up Task</button>
+        </form>
+      </div>
+
+      <!-- Task detail view (shown after lookup) -->
+      <div id="taskDetail" class="hidden">
+        <div id="taskInfo" style="margin-bottom:20px"></div>
+
+        <!-- Applicants list -->
+        <div id="applicantsSection" class="hidden">
+          <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:12px">Applicants</h2>
+          <div id="applicantsList"></div>
+        </div>
+
+        <!-- Mark complete button -->
+        <div id="markCompleteSection" class="hidden" style="margin-top:20px">
+          <div class="terms-box" style="margin-bottom:16px">
+            <strong>Before marking complete:</strong> confirm the student has finished the work
+            to your satisfaction. Once marked complete, the student can rate you and payment
+            can be released.
+          </div>
+          <button class="btn btn--accent" id="markCompleteBtn">✅ Mark Task Complete</button>
+        </div>
+
+        <!-- Rate student -->
+        <div id="rateStudentSection" class="hidden" style="margin-top:24px">
+          <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:8px">Rate the Student</h2>
+          <p style="color:var(--dim);font-size:.9rem;margin-bottom:16px">
+            Leave an honest rating to help the community.
+          </p>
+          <div class="star-picker" id="posterStarPicker" role="group" aria-label="Star rating">
+            <button type="button" class="star-btn" data-val="1" aria-label="1 star">★</button>
+            <button type="button" class="star-btn" data-val="2" aria-label="2 stars">★</button>
+            <button type="button" class="star-btn" data-val="3" aria-label="3 stars">★</button>
+            <button type="button" class="star-btn" data-val="4" aria-label="4 stars">★</button>
+            <button type="button" class="star-btn" data-val="5" aria-label="5 stars">★</button>
+          </div>
+          <p class="star-hint" id="posterStarHint" style="margin:8px 0 12px">Tap to rate</p>
+          <div class="form-group">
+            <label for="posterComment">Comment (optional)</label>
+            <textarea id="posterComment" rows="3" placeholder="Was the student punctual, careful, professional?" maxlength="500"></textarea>
+          </div>
+          <div class="alert alert--error hidden" id="rateError" role="alert"></div>
+          <div class="alert alert--success hidden" id="rateSuccess" role="status"></div>
+          <button class="btn btn--accent" id="submitPosterRating" style="margin-top:12px" disabled>
+            Submit Rating
+          </button>
+        </div>
+
+        <div class="alert alert--success hidden" id="completeSuccess" role="status" style="margin-top:16px"></div>
+        <div class="alert alert--error hidden" id="completeError" role="alert" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const BASE = '/api';
+    let currentJob  = null;
+    let currentEmail = null;
+
+    function escHtml(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function fmtDate(d) {
+      return d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    }
+    function statusLabel(s) {
+      const map = { open:'Open', assigned:'Assigned', pending_review:'Pending Review',
+                    completed:'Completed', cancelled:'Cancelled' };
+      return map[s] || s;
+    }
+
+    // ── Lookup ────────────────────────────────────────────
+    document.getElementById('lookupForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const errEl = document.getElementById('lookupError');
+      errEl.classList.add('hidden');
+
+      const email = document.getElementById('lookupEmail').value.trim();
+      const jobId = document.getElementById('lookupJobId').value.trim();
+      if (!email || !jobId) { errEl.textContent = 'Both fields required.'; errEl.classList.remove('hidden'); return; }
+
+      try {
+        // Get applications (uses poster_email to authenticate)
+        const res = await fetch(`${BASE}/applications/job/${encodeURIComponent(jobId)}?poster_email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error');
+
+        currentJob   = data.job;
+        currentEmail = email;
+        renderTask(data.job, data.applications);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    function renderTask(job, apps) {
+      document.getElementById('lookupSection').classList.add('hidden');
+      document.getElementById('taskDetail').classList.remove('hidden');
+      document.getElementById('manageTitle').textContent = job.title;
+
+      // Task info card
+      document.getElementById('taskInfo').innerHTML = `
+        <div class="info-card">
+          <h3>${escHtml(job.title)}</h3>
+          <p>${escHtml(job.category)} · ${escHtml(job.city)}, ${escHtml(job.state)}</p>
+          <p>Pay: <strong style="color:var(--accent)">$${parseFloat(job.pay).toFixed(2)}</strong></p>
+          <p>Status: <strong>${statusLabel(job.status)}</strong></p>
+          <p style="margin-top:6px;font-size:.8rem;color:var(--dim)">Posted ${fmtDate(job.created_at)}</p>
+        </div>`;
+
+      // Applicants section
+      if (job.status === 'open') {
+        const appsSection = document.getElementById('applicantsSection');
+        appsSection.classList.remove('hidden');
+        if (!apps.length) {
+          document.getElementById('applicantsList').innerHTML =
+            '<p class="text-dim">No applicants yet. Check back soon.</p>';
+        } else {
+          document.getElementById('applicantsList').innerHTML = apps.map(a => `
+            <div class="app-card" id="acard-${escHtml(a.id)}">
+              <h4>${escHtml(a.student_name)}</h4>
+              <p>${escHtml(a.student_email)}</p>
+              ${a.message ? `<p style="margin:6px 0;font-size:.9rem">"${escHtml(a.message)}"</p>` : ''}
+              ${a.status === 'pending' ? `
+                <div class="app-actions" style="margin-top:8px">
+                  <button class="btn btn--accent btn--sm accept-btn" data-id="${escHtml(a.id)}">Accept</button>
+                  <button class="btn btn--danger btn--sm reject-btn" data-id="${escHtml(a.id)}">Decline</button>
+                </div>` : `
+                <span class="job-card__status ${a.status==='accepted'?'status-assigned':'status-cancelled'}" style="margin-top:6px;display:inline-block">
+                  ${a.status}
+                </span>`}
+            </div>`).join('');
+
+          document.querySelectorAll('.accept-btn').forEach(btn => {
+            btn.addEventListener('click', () => acceptApplicant(btn.dataset.id));
+          });
+          document.querySelectorAll('.reject-btn').forEach(btn => {
+            btn.addEventListener('click', () => rejectApplicant(btn.dataset.id));
+          });
+        }
+      }
+
+      // Mark complete button — show when assigned
+      if (job.status === 'assigned') {
+        document.getElementById('markCompleteSection').classList.remove('hidden');
+      }
+
+      // Rate student — show when pending_review or completed (and not yet rated)
+      if (job.status === 'pending_review' || job.status === 'completed') {
+        document.getElementById('rateStudentSection').classList.remove('hidden');
+        setupPosterRating(job.id);
+      }
+    }
+
+    // ── Accept/Reject applicant ───────────────────────────
+    async function acceptApplicant(appId) {
+      if (!confirm('Accept this applicant? All other applications will be declined.')) return;
+      try {
+        const res = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/accept`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ poster_email: currentEmail }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        currentJob.status = 'assigned';
+        renderTask(currentJob, []);
+        document.getElementById('completeSuccess').textContent = data.message;
+        document.getElementById('completeSuccess').classList.remove('hidden');
+      } catch (err) {
+        document.getElementById('completeError').textContent = err.message;
+        document.getElementById('completeError').classList.remove('hidden');
+      }
+    }
+
+    async function rejectApplicant(appId) {
+      try {
+        const res = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/reject`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ poster_email: currentEmail }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        const card = document.getElementById(`acard-${appId}`);
+        if (card) card.querySelector('.app-actions').innerHTML =
+          '<span class="job-card__status status-cancelled">Declined</span>';
+      } catch (err) { alert(err.message); }
+    }
+
+    // ── Mark complete ─────────────────────────────────────
+    document.getElementById('markCompleteBtn').addEventListener('click', async () => {
+      if (!confirm('Mark this task as complete? This cannot be undone.')) return;
+      const btn = document.getElementById('markCompleteBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const res = await fetch(`${BASE}/jobs/${encodeURIComponent(currentJob.id)}/mark-complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ poster_email: currentEmail }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        document.getElementById('markCompleteSection').classList.add('hidden');
+        document.getElementById('rateStudentSection').classList.remove('hidden');
+        setupPosterRating(currentJob.id);
+        document.getElementById('completeSuccess').textContent = '✅ ' + data.message;
+        document.getElementById('completeSuccess').classList.remove('hidden');
+      } catch (err) {
+        document.getElementById('completeError').textContent = err.message;
+        document.getElementById('completeError').classList.remove('hidden');
+        btn.disabled = false; btn.textContent = '✅ Mark Task Complete';
+      }
+    });
+
+    // ── Poster rates student ──────────────────────────────
+    function setupPosterRating(jobId) {
+      let selectedStars = 0;
+      const starBtns  = document.querySelectorAll('#posterStarPicker .star-btn');
+      const submitBtn = document.getElementById('submitPosterRating');
+      const hint      = document.getElementById('posterStarHint');
+      const hints     = ['','Terrible','Poor','OK','Good','Excellent'];
+
+      function highlightStars(n) {
+        starBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= n));
+      }
+
+      starBtns.forEach(btn => {
+        btn.addEventListener('mouseenter', () => highlightStars(parseInt(btn.dataset.val)));
+        btn.addEventListener('mouseleave', () => highlightStars(selectedStars));
+        btn.addEventListener('click', () => {
+          selectedStars      = parseInt(btn.dataset.val);
+          hint.textContent   = hints[selectedStars];
+          submitBtn.disabled = false;
+          highlightStars(selectedStars);
+        });
+      });
+
+      submitBtn.addEventListener('click', async () => {
+        if (!selectedStars) return;
+        submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+        const comment = document.getElementById('posterComment').value.trim();
+        try {
+          const res = await fetch(`${BASE}/jobs/${encodeURIComponent(jobId)}/rate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stars: selectedStars, comment, poster_email: currentEmail }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          document.getElementById('rateStudentSection').classList.add('hidden');
+          document.getElementById('rateSuccess').textContent = '⭐ ' + data.message;
+          document.getElementById('rateSuccess').classList.remove('hidden');
+        } catch (err) {
+          document.getElementById('rateError').textContent = err.message;
+          document.getElementById('rateError').classList.remove('hidden');
+          submitBtn.disabled = false; submitBtn.textContent = 'Submit Rating';
+        }
+      });
+    }
+
+    // ── Auto-fill from URL params ─────────────────────────
+    const p = new URLSearchParams(location.search);
+    if (p.get('job') && p.get('email')) {
+      document.getElementById('lookupJobId').value  = p.get('job');
+      document.getElementById('lookupEmail').value  = p.get('email');
+      document.getElementById('lookupForm').dispatchEvent(new Event('submit'));
+    }
+  </script>
+</body>
+</html>

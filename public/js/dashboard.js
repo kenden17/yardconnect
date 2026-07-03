@@ -5,14 +5,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user) return;
 
   // ── Header / sidebar ────────────────────────────────────
-  document.getElementById('navName').textContent     = user.name.split(' ')[0];
-  document.getElementById('sidebarName').textContent = user.name;
-  document.getElementById('welcomeName').textContent = user.name.split(' ')[0];
-  document.getElementById('sideAvatar').textContent  = user.name.charAt(0).toUpperCase();
+  document.getElementById('navName').textContent       = user.name.split(' ')[0];
+  document.getElementById('sidebarName').textContent   = user.name;
+  document.getElementById('welcomeName').textContent   = user.name.split(' ')[0];
+  document.getElementById('sideAvatar').textContent    = user.name.charAt(0).toUpperCase();
   document.getElementById('settingsName').textContent  = user.name;
   document.getElementById('settingsEmail').textContent = user.email;
 
-  // Stripe onboarding success
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('stripe') === 'success') showAlert('✅ Payout account connected!');
 
@@ -31,25 +30,113 @@ document.addEventListener('DOMContentLoaded', async () => {
   navBtns.forEach(btn => btn.addEventListener('click', () => showPanel(btn.dataset.panel)));
 
   // ── Helpers ──────────────────────────────────────────────
-  function showAlert(msg) {
+  function showAlert(msg, type = 'success') {
     const el = document.getElementById('dashAlert');
     el.textContent = msg;
+    el.className = `alert alert--${type}`;
     el.classList.remove('hidden');
     setTimeout(() => el.classList.add('hidden'), 6000);
   }
 
   function escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function statusBadge(s) {
-    return `<span class="job-card__status status-${s}">${s}</span>`;
+    const label = s === 'pending_review' ? 'Awaiting Review' : s;
+    return `<span class="job-card__status status-${s}">${label}</span>`;
   }
 
   function fmtDate(dt) {
     return dt ? new Date(dt).toLocaleDateString('en-US',
       { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  }
+
+  function starsHtml(n) {
+    return '★'.repeat(n) + '☆'.repeat(5 - n);
+  }
+
+  // ── Rating modal ──────────────────────────────────────────
+  let ratingModal = null;
+
+  function openRatingModal(jobId, jobTitle) {
+    // Remove old modal if exists
+    document.getElementById('ratingModal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id        = 'ratingModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal__backdrop" id="ratingBackdrop"></div>
+      <div class="modal__box" style="max-width:440px">
+        <button class="modal__close" id="ratingClose">✕</button>
+        <h2 class="modal__title">Rate this Task</h2>
+        <p style="color:var(--dim);margin-bottom:20px;font-size:.9rem">${escHtml(jobTitle)}</p>
+        <div class="star-picker" id="starPicker" role="group" aria-label="Star rating">
+          ${[1,2,3,4,5].map(n => `
+            <button type="button" class="star-btn" data-val="${n}" aria-label="${n} star${n>1?'s':''}">★</button>
+          `).join('')}
+        </div>
+        <p class="star-hint" id="starHint">Tap to rate</p>
+        <div class="form-group" style="margin-top:16px">
+          <label for="ratingComment">Comment (optional)</label>
+          <textarea id="ratingComment" rows="3" placeholder="How did it go? Any feedback for the poster?" maxlength="500"></textarea>
+        </div>
+        <div class="alert alert--error hidden" id="ratingError" role="alert"></div>
+        <button class="btn btn--accent btn--full" id="submitRatingBtn" style="margin-top:12px" disabled>
+          Submit Rating
+        </button>
+      </div>`;
+
+    document.body.appendChild(modal);
+    ratingModal = modal;
+
+    let selectedStars = 0;
+    const starBtns    = modal.querySelectorAll('.star-btn');
+    const submitBtn   = modal.querySelector('#submitRatingBtn');
+    const hint        = modal.querySelector('#starHint');
+    const hints       = ['','Terrible','Poor','OK','Good','Excellent'];
+
+    function highlightStars(n) {
+      starBtns.forEach(b => {
+        const v = parseInt(b.dataset.val);
+        b.classList.toggle('active', v <= n);
+      });
+    }
+
+    starBtns.forEach(btn => {
+      btn.addEventListener('mouseenter', () => highlightStars(parseInt(btn.dataset.val)));
+      btn.addEventListener('mouseleave', () => highlightStars(selectedStars));
+      btn.addEventListener('click', () => {
+        selectedStars    = parseInt(btn.dataset.val);
+        hint.textContent = hints[selectedStars];
+        submitBtn.disabled = false;
+        highlightStars(selectedStars);
+      });
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      if (!selectedStars) return;
+      submitBtn.disabled    = true;
+      submitBtn.textContent = 'Submitting…';
+      const token   = localStorage.getItem('ch_token');
+      const comment = modal.querySelector('#ratingComment').value.trim();
+      try {
+        await API.rateJob(jobId, { stars: selectedStars, comment, student_token: token });
+        modal.remove();
+        showAlert('⭐ Rating submitted. Thanks!');
+        loadMyJobs();
+      } catch (err) {
+        modal.querySelector('#ratingError').textContent = err.message;
+        modal.querySelector('#ratingError').classList.remove('hidden');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Submit Rating';
+      }
+    });
+
+    modal.querySelector('#ratingClose').addEventListener('click',   () => modal.remove());
+    modal.querySelector('#ratingBackdrop').addEventListener('click', () => modal.remove());
   }
 
   // ── Overview ─────────────────────────────────────────────
@@ -62,11 +149,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const accepted  = jobs.filter(j => j.application_status === 'accepted').length;
       const completed = jobs.filter(j => j.status === 'completed').length;
 
+      // Show student's own rating
+      const myRating = user.avg_rating
+        ? `${starsHtml(Math.round(user.avg_rating))} <span style="font-size:.85rem;color:var(--dim)">${user.avg_rating} (${user.rating_count})</span>`
+        : '<span style="color:var(--dim);font-size:.85rem">No ratings yet</span>';
+
       cardsEl.innerHTML = `
         <div class="ov-card"><div class="ov-card__num">${jobs.length}</div><div class="ov-card__label">Total Applied</div></div>
         <div class="ov-card"><div class="ov-card__num">${pending}</div><div class="ov-card__label">Pending</div></div>
         <div class="ov-card"><div class="ov-card__num">${accepted}</div><div class="ov-card__label">Accepted</div></div>
         <div class="ov-card"><div class="ov-card__num">${completed}</div><div class="ov-card__label">Completed</div></div>
+        <div class="ov-card"><div class="ov-card__num" style="font-size:1.4rem;color:var(--warn)">${myRating}</div><div class="ov-card__label">Your Rating</div></div>
       `;
 
       const recent = jobs.slice(0, 4);
@@ -91,9 +184,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
               <div class="job-card__pay">$${parseFloat(j.pay).toFixed(2)}</div>
               ${statusBadge(j.status)}
-              <span class="job-card__status" style="background:rgba(59,130,246,.15);color:#93c5fd">
-                ${j.application_status}
-              </span>
             </div>
           </div>
         </div>`).join('');
@@ -118,7 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       list.innerHTML = jobs.map(j => `
-        <div class="job-card" style="margin-bottom:12px">
+        <div class="job-card" id="jcard-${j.id}" style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
             <div>
               <div class="job-card__cat">${escHtml(j.category)}</div>
@@ -135,12 +225,34 @@ document.addEventListener('DOMContentLoaded', async () => {
               </span>
             </div>
           </div>
-          ${j.application_status === 'accepted' ? `
+
+          ${j.application_status === 'accepted' && j.status === 'assigned' ? `
             <div style="margin-top:10px;padding:10px;background:rgba(34,197,94,.08);
                  border:1px solid rgba(34,197,94,.2);border-radius:4px;font-size:.85rem">
-              ✅ You've been accepted! The task poster will contact you to coordinate.
+              ✅ Accepted! The poster will contact you. When done, they'll mark it complete.
+            </div>` : ''}
+
+          ${j.status === 'pending_review' && !j.poster_rated ? `
+            <div style="margin-top:12px">
+              <p style="font-size:.85rem;color:var(--dim);margin-bottom:8px">
+                🎉 Task complete! Leave a rating for the poster.
+              </p>
+              <button class="btn btn--accent btn--sm rate-btn" data-id="${j.id}" data-title="${escHtml(j.title)}">
+                ⭐ Rate Poster
+              </button>
+            </div>` : ''}
+
+          ${j.status === 'completed' ? `
+            <div style="margin-top:8px;font-size:.82rem;color:var(--dim)">
+              ✅ Completed on ${fmtDate(j.created_at)}
             </div>` : ''}
         </div>`).join('');
+
+      // Bind rate buttons
+      list.querySelectorAll('.rate-btn').forEach(btn => {
+        btn.addEventListener('click', () => openRatingModal(btn.dataset.id, btn.dataset.title));
+      });
+
     } catch (err) {
       list.innerHTML = `<div class="empty-state"><p>${escHtml(err.message)}</p></div>`;
     }
@@ -151,7 +263,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const onboardSection = document.getElementById('stripeOnboardSection');
     const txList         = document.getElementById('txList');
 
-    // Show onboarding if student hasn't set up payouts
     if (!user.stripe_account_id) {
       onboardSection.classList.remove('hidden');
     }
@@ -196,6 +307,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) { alert(err.message); }
   });
 
-  // ── Initial load ─────────────────────────────────────────
   loadOverview();
 });

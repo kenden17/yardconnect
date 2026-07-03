@@ -90,12 +90,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function applyToJob(jobId, btn) {
     if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; return; }
+
+    // Ask for a short message
+    const message = prompt('Add a short message to the poster (optional):\ne.g. "I\'m available this weekend and have my own equipment."') ?? '';
+    if (message === null) return; // cancelled
+
     btn.disabled    = true;
     btn.textContent = 'Applying…';
     try {
-      await API.apply(jobId, '');
+      await API.apply(jobId, message.trim());
       btn.textContent = '✓ Applied';
       btn.classList.remove('btn--accent');
+      btn.style.color = 'var(--accent)';
     } catch (err) {
       alert(err.message);
       btn.disabled    = false;
@@ -134,24 +140,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     postBtn.textContent = 'Posting…';
 
     const data = {
-      poster_name:  document.getElementById('posterName').value.trim(),
-      poster_email: document.getElementById('posterEmail').value.trim(),
-      poster_phone: document.getElementById('posterPhone').value.trim(),
-      title:        document.getElementById('taskTitle').value.trim(),
-      category:     document.getElementById('taskCategory').value,
-      description:  document.getElementById('taskDesc').value.trim(),
-      pay:          document.getElementById('taskPay').value,
-      address:      document.getElementById('taskAddress').value.trim(),
-      city:         document.getElementById('taskCity').value.trim(),
-      state:        document.getElementById('taskState').value.trim(),
-      zip:          document.getElementById('taskZip').value.trim(),
+      poster_name:    document.getElementById('posterName').value.trim(),
+      poster_email:   document.getElementById('posterEmail').value.trim(),
+      poster_phone:   document.getElementById('posterPhone').value.trim(),
+      poster_address: document.getElementById('posterAddress').value.trim(),
+      poster_dob:     document.getElementById('posterDob').value.trim(),
+      poster_id_type: document.getElementById('posterIdType').value,
+      poster_id_num:  document.getElementById('posterIdNum').value.trim(),
+      poster_agreed:  String(document.getElementById('posterAgreed').checked),
+      title:          document.getElementById('taskTitle').value.trim(),
+      category:       document.getElementById('taskCategory').value,
+      description:    document.getElementById('taskDesc').value.trim(),
+      pay:            document.getElementById('taskPay').value,
+      address:        document.getElementById('taskAddress').value.trim(),
+      city:           document.getElementById('taskCity').value.trim(),
+      state:          document.getElementById('taskState').value.trim(),
+      zip:            document.getElementById('taskZip').value.trim(),
     };
 
     try {
-      await API.postJob(data);
+      const result = await API.postJob(data);
       postSuccessEl.innerHTML = `
-        ✅ <strong>Task posted!</strong> Verified students near you can now apply.
-        We'll email you at <strong>${escHtml(data.poster_email)}</strong> when someone is assigned.
+        ✅ <strong>Task posted!</strong> Verified students near you can now apply.<br />
+        <span style="font-size:.85rem">
+          Save this link to manage your task, view applicants, and mark it complete:<br />
+          <a href="/manage.html?job=${escHtml(result.jobId)}&amp;email=${encodeURIComponent(data.poster_email)}"
+             style="color:var(--accent);word-break:break-all">
+            /manage.html?job=${escHtml(result.jobId)}&amp;email=${encodeURIComponent(data.poster_email)}
+          </a>
+        </span>
       `;
       postSuccessEl.classList.remove('hidden');
       postForm.reset();
