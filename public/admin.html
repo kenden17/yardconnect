@@ -225,6 +225,8 @@
       if (err.message === 'Unauthorized.') {
         alert('Wrong admin code. Access denied.');
         location.href = '/login.html';
+      } else {
+        alert('Failed to load admin data: ' + err.message);
       }
     });
   </script>

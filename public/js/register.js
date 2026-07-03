@@ -71,10 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const { token, user } = await API.register(name, email, pw, dob);
-      Auth.setSession(token, user);
+      try {
+        Auth.setSession(token, user);
+      } catch (storageErr) {
+        showError('Could not save session: ' + storageErr.message + '. Try disabling private browsing.');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
       window.location.href = '/dashboard.html';
     } catch (err) {
-      showError(err.message || 'Registration failed. Please try again.');
+      showError(err.message || ('Registration failed: ' + String(err)));
       submitBtn.disabled    = false;
       submitBtn.textContent = 'Create Account';
     }

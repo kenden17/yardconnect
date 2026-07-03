@@ -39,10 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const { token, user } = await API.login(email, password);
-      Auth.setSession(token, user);
+      try {
+        Auth.setSession(token, user);
+      } catch (storageErr) {
+        showError('Could not save session: ' + storageErr.message + '. Try disabling private browsing.');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Log In';
+        return;
+      }
       window.location.href = '/dashboard.html';
     } catch (err) {
-      showError(err.message || 'Login failed. Please try again.');
+      showError(err.message || ('Login failed: ' + String(err)));
       submitBtn.disabled    = false;
       submitBtn.textContent = 'Log In';
     }

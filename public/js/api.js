@@ -11,7 +11,13 @@ const API = (() => {
     const opts = { method, headers, credentials: 'include' };
     if (body) opts.body = JSON.stringify(body);
 
-    const res  = await fetch(BASE + path, opts);
+    let res;
+    try {
+      res = await fetch(BASE + path, opts);
+    } catch (networkErr) {
+      throw new Error('Cannot reach the server. Make sure it is running on port 3000.');
+    }
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
     return data;
