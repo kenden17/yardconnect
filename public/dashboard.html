@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — YardConnect</title>
+  <title>Dashboard — Campus Hands</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -12,12 +12,11 @@
 </head>
 <body class="dash-page">
 
-  <!-- NAV -->
   <header class="nav" id="mainNav">
-    <a href="/" class="nav__logo">Yard<span>Connect</span></a>
+    <a href="/" class="nav__logo">Campus<span>Hands</span></a>
     <nav class="nav__links">
       <a href="/dashboard.html" class="active">Dashboard</a>
-      <a href="/#jobs">Browse Jobs</a>
+      <a href="/#tasks">Browse Tasks</a>
     </nav>
     <div class="nav__user" id="navUser">
       <span class="nav__name" id="navName"></span>
@@ -26,163 +25,71 @@
   </header>
 
   <div class="dash-layout">
-
-    <!-- SIDEBAR -->
     <aside class="dash-sidebar">
       <div class="dash-sidebar__user">
         <div class="avatar" id="sideAvatar"></div>
         <div>
           <div class="dash-sidebar__name" id="sidebarName">Loading…</div>
-          <div class="dash-sidebar__role" id="sidebarRole"></div>
+          <div class="dash-sidebar__role">Student</div>
         </div>
       </div>
       <nav class="dash-sidebar__nav">
         <button class="dash-nav-btn active" data-panel="overview">Overview</button>
-        <button class="dash-nav-btn" data-panel="jobs" id="navJobs">My Jobs</button>
-        <button class="dash-nav-btn" data-panel="post" id="navPost" style="display:none">Post a Job</button>
-        <button class="dash-nav-btn" data-panel="payments">Payments</button>
+        <button class="dash-nav-btn" data-panel="applications">My Applications</button>
+        <button class="dash-nav-btn" data-panel="payments">Earnings</button>
         <button class="dash-nav-btn" data-panel="settings">Settings</button>
       </nav>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="dash-main">
-
-      <!-- Alerts -->
       <div class="alert alert--success hidden" id="dashAlert" role="status"></div>
 
-      <!-- OVERVIEW PANEL -->
+      <!-- OVERVIEW -->
       <section class="dash-panel active" id="panel-overview">
-        <h1 class="dash-title">Welcome back, <span id="welcomeName"></span></h1>
+        <h1 class="dash-title">Hey, <span id="welcomeName"></span> 👋</h1>
         <div class="overview-cards" id="overviewCards">
           <div class="ov-card loading-state">Loading…</div>
         </div>
         <div class="recent-jobs">
-          <h2 class="dash-subtitle">Recent Activity</h2>
+          <h2 class="dash-subtitle">Recent Applications</h2>
           <div id="recentJobs"><div class="loading-state">Loading…</div></div>
+        </div>
+        <div style="margin-top:24px">
+          <a href="/#tasks" class="btn btn--accent">Browse Open Tasks →</a>
         </div>
       </section>
 
-      <!-- MY JOBS PANEL -->
-      <section class="dash-panel" id="panel-jobs">
-        <h1 class="dash-title">My Jobs</h1>
+      <!-- APPLICATIONS -->
+      <section class="dash-panel" id="panel-applications">
+        <h1 class="dash-title">My Applications</h1>
         <div id="myJobsList"><div class="loading-state">Loading…</div></div>
       </section>
 
-      <!-- POST JOB PANEL (homeowner only) -->
-      <section class="dash-panel" id="panel-post">
-        <h1 class="dash-title">Post a Job</h1>
-        <form class="dash-form" id="postJobForm" novalidate>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="jobTitle">Job Title</label>
-              <input type="text" id="jobTitle" name="title" placeholder="e.g. Mow and Edge Front Lawn" required maxlength="100" />
-            </div>
-            <div class="form-group">
-              <label for="jobCategory">Category</label>
-              <select id="jobCategory" name="category" required>
-                <option value="">Select category…</option>
-                <option>Yard Work</option>
-                <option>Moving &amp; Hauling</option>
-                <option>Cleaning</option>
-                <option>Snow Removal</option>
-                <option>Pet Care</option>
-                <option>Other</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="jobDesc">Description</label>
-            <textarea id="jobDesc" name="description" rows="4" placeholder="Describe exactly what you need done, tools provided, any special instructions…" required maxlength="1000"></textarea>
-            <span class="field-hint" id="descCount">0 / 1000</span>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="jobPay">Pay ($)</label>
-              <input type="number" id="jobPay" name="pay" placeholder="25" min="5" max="5000" step="0.01" required />
-              <span class="field-hint">Students receive 95% after platform fee.</span>
-            </div>
-            <div class="form-group">
-              <label for="jobAddress">Street Address</label>
-              <input type="text" id="jobAddress" name="address" placeholder="123 Main St" required />
-            </div>
-          </div>
-          <div class="form-row three-col">
-            <div class="form-group">
-              <label for="jobCity">City</label>
-              <input type="text" id="jobCity" name="city" required />
-            </div>
-            <div class="form-group">
-              <label for="jobState">State</label>
-              <input type="text" id="jobState" name="state" placeholder="TX" maxlength="2" required />
-            </div>
-            <div class="form-group">
-              <label for="jobZip">ZIP</label>
-              <input type="text" id="jobZip" name="zip" placeholder="78701" maxlength="5" pattern="\d{5}" required />
-            </div>
-          </div>
-
-          <div class="alert alert--error hidden" id="postJobError" role="alert"></div>
-          <div class="alert alert--success hidden" id="postJobSuccess" role="status"></div>
-
-          <button type="submit" class="btn btn--accent" id="postJobBtn">Post Job</button>
-        </form>
-      </section>
-
-      <!-- PAYMENTS PANEL -->
+      <!-- EARNINGS -->
       <section class="dash-panel" id="panel-payments">
-        <h1 class="dash-title">Payments</h1>
-
-        <!-- Student: Stripe onboarding -->
+        <h1 class="dash-title">Earnings</h1>
         <div id="stripeOnboardSection" class="hidden">
           <div class="info-card">
-            <h3>Set Up Payouts</h3>
-            <p>Connect a bank account to receive payments for completed jobs. We use Stripe to process payouts securely.</p>
-            <button class="btn btn--accent" id="stripeOnboardBtn">Set Up Payout Account →</button>
+            <h3>Set Up Your Payout Account</h3>
+            <p>Connect a bank account so you can receive payments for completed tasks. Powered by Stripe.</p>
+            <button class="btn btn--accent" id="stripeOnboardBtn">Set Up Payouts →</button>
           </div>
         </div>
-
-        <div id="paymentHistorySection">
-          <h2 class="dash-subtitle">Transaction History</h2>
-          <div id="txList"><div class="loading-state">Loading…</div></div>
-        </div>
+        <h2 class="dash-subtitle">Transaction History</h2>
+        <div id="txList"><div class="loading-state">Loading…</div></div>
       </section>
 
-      <!-- SETTINGS PANEL -->
+      <!-- SETTINGS -->
       <section class="dash-panel" id="panel-settings">
         <h1 class="dash-title">Account Settings</h1>
         <div class="info-card">
           <h3 id="settingsName"></h3>
           <p id="settingsEmail" class="text-dim"></p>
-          <p id="settingsRole" class="text-dim capitalize"></p>
+          <p class="text-dim">Student account</p>
         </div>
-        <p class="text-dim" style="margin-top:16px;">More settings coming soon.</p>
+        <p class="text-dim" style="margin-top:16px">More settings coming soon.</p>
       </section>
-
     </main>
-  </div>
-
-  <!-- APPLICATION MODAL (homeowner views applicants) -->
-  <div class="modal hidden" id="appsModal" role="dialog" aria-modal="true" aria-label="Job Applications">
-    <div class="modal__backdrop" id="appsBackdrop"></div>
-    <div class="modal__box">
-      <button class="modal__close" id="appsClose" aria-label="Close">✕</button>
-      <h2 class="modal__title">Applicants for <span id="modalJobTitle"></span></h2>
-      <div id="appsList"><div class="loading-state">Loading…</div></div>
-    </div>
-  </div>
-
-  <!-- PAYMENT MODAL (homeowner pays) -->
-  <div class="modal hidden" id="payModal" role="dialog" aria-modal="true" aria-label="Release Payment">
-    <div class="modal__backdrop" id="payBackdrop"></div>
-    <div class="modal__box">
-      <button class="modal__close" id="payClose" aria-label="Close">✕</button>
-      <h2 class="modal__title">Release Payment</h2>
-      <div id="payDetails"></div>
-      <div id="stripeCardEl"></div>
-      <div class="alert alert--error hidden" id="payError" role="alert"></div>
-      <button class="btn btn--accent btn--full" id="paySubmitBtn" style="margin-top:16px;">Pay Now</button>
-    </div>
   </div>
 
   <script src="/js/api.js"></script>

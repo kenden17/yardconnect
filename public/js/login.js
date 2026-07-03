@@ -1,16 +1,16 @@
 // public/js/login.js
 document.addEventListener('DOMContentLoaded', () => {
-  // Show verified success message if redirected from email verification
+  const form      = document.getElementById('loginForm');
+  const errorEl   = document.getElementById('loginError');
+  const submitBtn = document.getElementById('loginBtn');
+
+  // Show verified banner if coming from email link
   const params = new URLSearchParams(window.location.search);
   if (params.get('verified') === '1') {
     document.getElementById('verifiedAlert')?.classList.remove('hidden');
   }
 
-  const form      = document.getElementById('loginForm');
-  const errorEl   = document.getElementById('loginError');
-  const submitBtn = document.getElementById('loginBtn');
-
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
     errorEl.classList.add('hidden');
 
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    submitBtn.disabled = true;
+    submitBtn.disabled    = true;
     submitBtn.textContent = 'Logging in…';
 
     try {
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.classList.remove('hidden');
-      submitBtn.disabled = false;
+      submitBtn.disabled    = false;
       submitBtn.textContent = 'Log In';
     }
   });

@@ -1,7 +1,7 @@
 {
-  "name": "yardwork-connect",
+  "name": "campus-hands",
   "version": "1.0.0",
-  "description": "Connects high school students to homeowners for local jobs",
+  "description": "Connects verified high school students with people who need small tasks done",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

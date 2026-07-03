@@ -1,13 +1,36 @@
-// public/js/home.js — Homepage job listing
-document.addEventListener('DOMContentLoaded', () => {
+// public/js/home.js — Homepage: post task form + browse tasks
+document.addEventListener('DOMContentLoaded', async () => {
+
+  // ── Load categories into both dropdowns ─────────────────
+  async function loadCategories() {
+    try {
+      const { categories } = await API.getCategories();
+      const filterSel = document.getElementById('filterCategory');
+      const postSel   = document.getElementById('taskCategory');
+      categories.forEach(c => {
+        if (filterSel) filterSel.innerHTML += `<option value="${c}">${c}</option>`;
+        if (postSel)   postSel.innerHTML   += `<option value="${c}">${c}</option>`;
+      });
+    } catch (_) {}
+  }
+
+  await loadCategories();
+
+  // ── Browse tasks ─────────────────────────────────────────
   let currentPage = 1;
 
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   async function loadJobs(page = 1) {
-    const grid = document.getElementById('jobsGrid');
+    const grid       = document.getElementById('jobsGrid');
     const pagination = document.getElementById('jobsPagination');
     if (!grid) return;
 
-    grid.innerHTML = '<div class="loading-state">Loading jobs…</div>';
+    grid.innerHTML       = '<div class="loading-state">Loading tasks…</div>';
     pagination.innerHTML = '';
 
     const category = document.getElementById('filterCategory')?.value || '';
@@ -15,14 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const zip      = document.getElementById('filterZip')?.value.trim()  || '';
 
     try {
-      const { jobs, total, pages } = await API.getJobs({ category, city, zip, page });
+      const { jobs, pages } = await API.getJobs({ category, city, zip, page });
 
       if (!jobs || jobs.length === 0) {
-        grid.innerHTML = `
-          <div class="empty-state" style="grid-column: 1/-1">
-            <h3>No jobs found</h3>
-            <p>Try adjusting your search filters, or check back later.</p>
-          </div>`;
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+          <h3>No tasks found</h3>
+          <p>Try different filters, or be the first to <a href="#post-task" style="color:var(--accent)">post a task</a>.</p>
+        </div>`;
         return;
       }
 
@@ -35,28 +57,26 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="job-card__desc">${escHtml(job.description)}</p>
           <div class="job-card__meta">
             <span>📍 ${escHtml(job.city)}, ${escHtml(job.state)}</span>
-            <span>👤 ${escHtml(job.homeowner_name)}</span>
+            <span>👤 ${escHtml(job.poster_name)}</span>
           </div>
           <div class="job-card__pay">$${parseFloat(job.pay).toFixed(2)}</div>
           <div class="job-card__actions">
-            ${user && user.role === 'student'
+            ${user
               ? `<button class="btn btn--accent btn--sm apply-btn" data-id="${job.id}">Apply</button>`
-              : `<a href="/register.html?role=student" class="btn btn--accent btn--sm">Apply →</a>`
+              : `<a href="/register.html" class="btn btn--accent btn--sm">Sign Up to Apply →</a>`
             }
           </div>
         </article>
       `).join('');
 
-      // Apply buttons
       grid.querySelectorAll('.apply-btn').forEach(btn => {
         btn.addEventListener('click', () => applyToJob(btn.dataset.id, btn));
       });
 
-      // Pagination
       if (pages > 1) {
         for (let i = 1; i <= pages; i++) {
           const pb = document.createElement('button');
-          pb.className = 'page-btn' + (i === page ? ' active' : '');
+          pb.className  = 'page-btn' + (i === page ? ' active' : '');
           pb.textContent = i;
           pb.addEventListener('click', () => { currentPage = i; loadJobs(i); });
           pagination.appendChild(pb);
@@ -64,16 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-        <h3>Failed to load jobs</h3><p>${escHtml(err.message)}</p></div>`;
+        <h3>Failed to load tasks</h3><p>${escHtml(err.message)}</p></div>`;
     }
   }
 
   async function applyToJob(jobId, btn) {
-    if (!Auth.isLoggedIn()) {
-      window.location.href = '/login.html';
-      return;
-    }
-    btn.disabled = true;
+    if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; return; }
+    btn.disabled    = true;
     btn.textContent = 'Applying…';
     try {
       await API.apply(jobId, '');
@@ -81,27 +98,72 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.remove('btn--accent');
     } catch (err) {
       alert(err.message);
-      btn.disabled = false;
+      btn.disabled    = false;
       btn.textContent = 'Apply';
     }
   }
 
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
   document.getElementById('filterBtn')?.addEventListener('click', () => {
-    currentPage = 1;
-    loadJobs(1);
+    currentPage = 1; loadJobs(1);
   });
-
-  ['filterCategory','filterCity','filterZip'].forEach(id => {
+  ['filterCategory', 'filterCity', 'filterZip'].forEach(id => {
     document.getElementById(id)?.addEventListener('keydown', e => {
       if (e.key === 'Enter') { currentPage = 1; loadJobs(1); }
     });
   });
 
   loadJobs(1);
+
+  // ── Post task form (no auth) ─────────────────────────────
+  const postForm     = document.getElementById('postTaskForm');
+  const descArea     = document.getElementById('taskDesc');
+  const descCount    = document.getElementById('taskDescCount');
+  const postErrorEl  = document.getElementById('postTaskError');
+  const postSuccessEl= document.getElementById('postTaskSuccess');
+  const postBtn      = document.getElementById('postTaskBtn');
+
+  descArea?.addEventListener('input', () => {
+    descCount.textContent = `${descArea.value.length} / 1000`;
+  });
+
+  postForm?.addEventListener('submit', async e => {
+    e.preventDefault();
+    postErrorEl.classList.add('hidden');
+    postSuccessEl.classList.add('hidden');
+    postBtn.disabled    = true;
+    postBtn.textContent = 'Posting…';
+
+    const data = {
+      poster_name:  document.getElementById('posterName').value.trim(),
+      poster_email: document.getElementById('posterEmail').value.trim(),
+      poster_phone: document.getElementById('posterPhone').value.trim(),
+      title:        document.getElementById('taskTitle').value.trim(),
+      category:     document.getElementById('taskCategory').value,
+      description:  document.getElementById('taskDesc').value.trim(),
+      pay:          document.getElementById('taskPay').value,
+      address:      document.getElementById('taskAddress').value.trim(),
+      city:         document.getElementById('taskCity').value.trim(),
+      state:        document.getElementById('taskState').value.trim(),
+      zip:          document.getElementById('taskZip').value.trim(),
+    };
+
+    try {
+      await API.postJob(data);
+      postSuccessEl.innerHTML = `
+        ✅ <strong>Task posted!</strong> Verified students near you can now apply.
+        We'll email you at <strong>${escHtml(data.poster_email)}</strong> when someone is assigned.
+      `;
+      postSuccessEl.classList.remove('hidden');
+      postForm.reset();
+      descCount.textContent = '0 / 1000';
+      // Reload the task list so new task appears
+      setTimeout(() => loadJobs(1), 800);
+    } catch (err) {
+      postErrorEl.textContent = err.message;
+      postErrorEl.classList.remove('hidden');
+    } finally {
+      postBtn.disabled    = false;
+      postBtn.textContent = 'Post Task →';
+    }
+  });
 });

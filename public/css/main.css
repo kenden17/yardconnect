@@ -1,5 +1,5 @@
 /* ============================================================
-   YardConnect — Main Stylesheet
+   Campus Hands — Main Stylesheet
    ============================================================ */
 
 /* --- Reset & Base --- */
@@ -168,6 +168,10 @@ input, select, textarea { font-family: inherit; }
                    color: var(--accent); line-height: 1; }
 .hero__stat .lbl { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase;
                    color: var(--dim); }
+
+/* ── Post Section ────────────────────────────────────────── */
+.post-section { padding: clamp(64px,10vw,120px) 0; background: var(--mid); }
+.post-form { max-width: 760px; display: flex; flex-direction: column; gap: 16px; }
 
 /* ── How It Works ────────────────────────────────────────── */
 .how { padding: clamp(64px,10vw,120px) 0; background: var(--dark); }

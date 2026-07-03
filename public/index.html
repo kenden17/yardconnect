@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YardConnect — Students Meet Homeowners</title>
+  <title>Campus Hands — Little Tasks. Real Pay.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -11,19 +11,19 @@
 </head>
 <body>
 
-  <!-- NAV -->
   <header class="nav" id="mainNav">
-    <a href="/" class="nav__logo">Yard<span>Connect</span></a>
-    <nav class="nav__links" id="navLinks">
+    <a href="/" class="nav__logo">Campus<span>Hands</span></a>
+    <nav class="nav__links">
       <a href="/#how-it-works">How it Works</a>
-      <a href="/#jobs">Browse Jobs</a>
+      <a href="/#post-task">Post a Task</a>
+      <a href="/#tasks">Browse Tasks</a>
     </nav>
     <div class="nav__auth" id="navAuth">
-      <a href="/login.html" class="btn btn--ghost">Log In</a>
-      <a href="/register.html" class="btn btn--accent">Sign Up</a>
+      <a href="/login.html" class="btn btn--ghost">Student Login</a>
+      <a href="/register.html" class="btn btn--accent">Join as Student</a>
     </div>
     <div class="nav__user hidden" id="navUser">
-      <a href="/dashboard.html" class="btn btn--ghost">Dashboard</a>
+      <a href="/dashboard.html" class="btn btn--ghost">My Dashboard</a>
       <button class="btn btn--outline" id="logoutBtn">Log Out</button>
     </div>
     <button class="nav__hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -31,35 +31,35 @@
     </button>
   </header>
 
-  <!-- MOBILE DRAWER -->
   <div class="nav__drawer" id="navDrawer">
     <a href="/#how-it-works">How it Works</a>
-    <a href="/#jobs">Browse Jobs</a>
-    <a href="/login.html">Log In</a>
-    <a href="/register.html" class="accent">Sign Up Free</a>
+    <a href="/#post-task">Post a Task</a>
+    <a href="/#tasks">Browse Tasks</a>
+    <a href="/login.html">Student Login</a>
+    <a href="/register.html" class="accent">Join as Student</a>
   </div>
 
   <!-- HERO -->
   <section class="hero">
     <div class="hero__bg"></div>
     <div class="hero__content">
-      <div class="hero__eyebrow">Local Work. Real Pay. School Verified.</div>
+      <div class="hero__eyebrow">School Verified Students. Zero Hassle.</div>
       <h1 class="hero__title">
-        Students. Jobs.<br /><span class="accent-text">Connected.</span>
+        Little Tasks.<br /><span class="accent-text">Done Right.</span>
       </h1>
       <p class="hero__sub">
-        YardConnect links high school students with nearby homeowners who need work done —
-        yard maintenance, moving help, cleaning, and more. Students earn, homeowners relax.
+        Campus Hands connects verified high school students with people who need small tasks done —
+        errands, yard work, moving help, tech support, and more. Post a task in under 2 minutes. No account needed.
       </p>
       <div class="hero__cta">
-        <a href="/register.html?role=student" class="btn btn--accent btn--lg">I'm a Student →</a>
-        <a href="/register.html?role=homeowner" class="btn btn--outline btn--lg">I'm a Homeowner →</a>
+        <a href="/#post-task" class="btn btn--accent btn--lg">Post a Task — Free →</a>
+        <a href="/register.html" class="btn btn--outline btn--lg">I'm a Student</a>
       </div>
-      <p class="hero__note">Students must register with a school or k12 email address.</p>
+      <p class="hero__note">Students must sign up with a school or k12 email. Posting a task requires no account.</p>
     </div>
     <div class="hero__stats">
-      <div class="hero__stat"><span class="num">100%</span><span class="lbl">School Verified</span></div>
-      <div class="hero__stat"><span class="num">Local</span><span class="lbl">Jobs Only</span></div>
+      <div class="hero__stat"><span class="num">Free</span><span class="lbl">To Post</span></div>
+      <div class="hero__stat"><span class="num">100%</span><span class="lbl">Verified Students</span></div>
       <div class="hero__stat"><span class="num">Secure</span><span class="lbl">Stripe Payments</span></div>
     </div>
   </section>
@@ -71,51 +71,51 @@
       <h2 class="section-title">Simple as 1 – 2 – 3</h2>
       <div class="how__grid">
         <div class="how__col">
-          <div class="how__badge">For Students</div>
+          <div class="how__badge">Need something done?</div>
           <div class="step">
             <div class="step__num">1</div>
             <div>
-              <h3>Sign Up with School Email</h3>
-              <p>Register using your k12 or school email. We verify your address to keep the platform safe.</p>
+              <h3>Post Your Task</h3>
+              <p>Describe what you need, set your pay amount, and post — no account required.</p>
             </div>
           </div>
           <div class="step">
             <div class="step__num">2</div>
             <div>
-              <h3>Browse & Apply</h3>
-              <p>Find jobs near you — mowing, raking, hauling, cleaning. Apply with a short message.</p>
+              <h3>Students Apply</h3>
+              <p>Verified local students apply with a message. You pick the best fit and they contact you directly.</p>
             </div>
           </div>
           <div class="step">
             <div class="step__num">3</div>
             <div>
-              <h3>Do the Work. Get Paid.</h3>
-              <p>Complete the job. The homeowner releases payment directly to you via Stripe.</p>
+              <h3>Pay When Done</h3>
+              <p>Once the task is complete, release payment securely through Stripe. Simple.</p>
             </div>
           </div>
         </div>
         <div class="how__divider"></div>
         <div class="how__col">
-          <div class="how__badge how__badge--alt">For Homeowners</div>
+          <div class="how__badge how__badge--alt">Looking to earn?</div>
           <div class="step">
             <div class="step__num">1</div>
             <div>
-              <h3>Post a Job</h3>
-              <p>Describe what you need done, set a fair pay amount, and publish your listing.</p>
+              <h3>Sign Up with School Email</h3>
+              <p>Create an account using your k12 or school email. Verify it with one click.</p>
             </div>
           </div>
           <div class="step">
             <div class="step__num">2</div>
             <div>
-              <h3>Review Applicants</h3>
-              <p>See who applied and pick the right student for the job. All students are school-verified.</p>
+              <h3>Browse &amp; Apply</h3>
+              <p>Find tasks near you — errands, yard work, tutoring, tech help, and more.</p>
             </div>
           </div>
           <div class="step">
             <div class="step__num">3</div>
             <div>
-              <h3>Pay Securely</h3>
-              <p>Once the job is done, release payment through our secure Stripe integration.</p>
+              <h3>Do It. Get Paid.</h3>
+              <p>Complete the task. Payment goes straight to you via Stripe.</p>
             </div>
           </div>
         </div>
@@ -123,68 +123,129 @@
     </div>
   </section>
 
-  <!-- BROWSE JOBS -->
-  <section class="jobs-section" id="jobs">
+  <!-- POST A TASK (inline form — no account) -->
+  <section class="post-section" id="post-task">
     <div class="container">
-      <div class="section-label">Open Jobs</div>
-      <h2 class="section-title">Work Near You</h2>
+      <div class="section-label">No Account Needed</div>
+      <h2 class="section-title">Post a Task</h2>
+      <form class="post-form" id="postTaskForm" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="posterName">Your Name</label>
+            <input type="text" id="posterName" placeholder="Jane Smith" required />
+          </div>
+          <div class="form-group">
+            <label for="posterEmail">Your Email</label>
+            <input type="email" id="posterEmail" placeholder="you@email.com" required />
+            <span class="field-hint">Students will contact you here.</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="posterPhone">Phone (optional)</label>
+          <input type="tel" id="posterPhone" placeholder="(555) 000-0000" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="taskTitle">Task Title</label>
+            <input type="text" id="taskTitle" placeholder="e.g. Help move boxes to storage" required maxlength="100" />
+          </div>
+          <div class="form-group">
+            <label for="taskCategory">Category</label>
+            <select id="taskCategory" required>
+              <option value="">Select…</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="taskDesc">Description</label>
+          <textarea id="taskDesc" rows="4" placeholder="Describe the task, how long it might take, anything the student should know…" required maxlength="1000"></textarea>
+          <span class="field-hint" id="taskDescCount">0 / 1000</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="taskPay">Pay ($)</label>
+            <input type="number" id="taskPay" placeholder="20" min="5" max="2000" step="1" required />
+            <span class="field-hint">Students receive 95% after platform fee.</span>
+          </div>
+          <div class="form-group">
+            <label for="taskAddress">Street Address</label>
+            <input type="text" id="taskAddress" placeholder="123 Main St" required />
+          </div>
+        </div>
+        <div class="form-row three-col">
+          <div class="form-group">
+            <label for="taskCity">City</label>
+            <input type="text" id="taskCity" required />
+          </div>
+          <div class="form-group">
+            <label for="taskState">State</label>
+            <input type="text" id="taskState" placeholder="TX" maxlength="2" required />
+          </div>
+          <div class="form-group">
+            <label for="taskZip">ZIP</label>
+            <input type="text" id="taskZip" placeholder="78701" maxlength="5" required />
+          </div>
+        </div>
+        <div class="alert alert--error hidden" id="postTaskError" role="alert"></div>
+        <div class="alert alert--success hidden" id="postTaskSuccess" role="status"></div>
+        <button type="submit" class="btn btn--accent btn--lg" id="postTaskBtn">Post Task →</button>
+      </form>
+    </div>
+  </section>
 
+  <!-- BROWSE TASKS -->
+  <section class="jobs-section" id="tasks">
+    <div class="container">
+      <div class="section-label">Open Tasks</div>
+      <h2 class="section-title">Work Near You</h2>
       <div class="jobs-filter">
         <select id="filterCategory" aria-label="Filter by category">
           <option value="">All Categories</option>
-          <option value="Yard Work">Yard Work</option>
-          <option value="Moving & Hauling">Moving &amp; Hauling</option>
-          <option value="Cleaning">Cleaning</option>
-          <option value="Snow Removal">Snow Removal</option>
-          <option value="Pet Care">Pet Care</option>
-          <option value="Other">Other</option>
         </select>
         <input type="text" id="filterCity" placeholder="City" aria-label="Filter by city" />
-        <input type="text" id="filterZip"  placeholder="ZIP code" aria-label="Filter by ZIP" maxlength="5" />
+        <input type="text" id="filterZip" placeholder="ZIP" aria-label="Filter by ZIP" maxlength="5" />
         <button class="btn btn--accent" id="filterBtn">Search</button>
       </div>
-
       <div class="jobs-grid" id="jobsGrid">
-        <div class="loading-state">Loading jobs…</div>
+        <div class="loading-state">Loading tasks…</div>
       </div>
       <div class="jobs-pagination" id="jobsPagination"></div>
     </div>
   </section>
 
-  <!-- TRUST SECTION -->
+  <!-- TRUST -->
   <section class="trust">
     <div class="container trust__inner">
       <div class="trust__item">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <h3>School Verified</h3>
-        <p>Every student account requires a verified k12 or school email — no exceptions.</p>
+        <p>Every student verifies with a real k12 or school email. No exceptions.</p>
       </div>
       <div class="trust__item">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
         <h3>Secure Payments</h3>
-        <p>All transactions run through Stripe. We never store card numbers on our servers.</p>
+        <p>All payments run through Stripe. Card numbers never touch our servers.</p>
       </div>
       <div class="trust__item">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        <h3>Local & Fast</h3>
-        <p>Jobs and students are matched by ZIP code so everything stays close to home.</p>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <h3>Real Students</h3>
+        <p>Every applicant is a verified high school student in your community.</p>
       </div>
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="footer">
     <div class="container footer__inner">
       <div class="footer__brand">
-        <span class="footer__logo">YardConnect</span>
-        <p>Connecting students and homeowners, one job at a time.</p>
+        <span class="footer__logo">CampusHands</span>
+        <p>Little deeds. Real students. Real pay.</p>
       </div>
       <div class="footer__cols">
         <div>
           <h4>Platform</h4>
           <a href="/#how-it-works">How It Works</a>
-          <a href="/#jobs">Browse Jobs</a>
-          <a href="/register.html">Sign Up</a>
+          <a href="/#post-task">Post a Task</a>
+          <a href="/register.html">Student Sign Up</a>
         </div>
         <div>
           <h4>Legal</h4>
@@ -194,7 +255,7 @@
       </div>
     </div>
     <div class="footer__bottom container">
-      <span>© 2026 YardConnect. All rights reserved.</span>
+      <span>© 2026 Campus Hands. All rights reserved.</span>
     </div>
   </footer>
 
