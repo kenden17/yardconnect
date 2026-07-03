@@ -81,7 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       window.location.href = '/dashboard.html';
     } catch (err) {
-      showError(err.message || ('Registration failed: ' + String(err)));
+      console.error('Register catch:', err);
+      const msg = (err && err.message) ? err.message : ('Unknown error: ' + JSON.stringify(err));
+      showError(msg);
       submitBtn.disabled    = false;
       submitBtn.textContent = 'Create Account';
     }
