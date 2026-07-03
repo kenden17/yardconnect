@@ -1,9 +1,13 @@
 // server/routes/jobs.js
-const express = require('express');
+const express  = require('express');
+const fs       = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { body, validationResult, query } = require('express-validator');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const jwt      = require('jsonwebtoken');
+const db       = require('../db');
+const { requireAuth }       = require('../middleware/auth');
+const { uploadIdPhoto }     = require('../utils/upload');
+const { isPosterOldEnough } = require('../utils/ageCheck');
 
 const router = express.Router();
 
@@ -35,9 +39,9 @@ router.get('/', [
   let where    = "WHERE j.status = 'open'";
   const params = [];
 
-  if (req.query.category) { where += ' AND j.category = ?';           params.push(req.query.category); }
-  if (req.query.city)     { where += ' AND LOWER(j.city) LIKE ?';     params.push(`%${req.query.city.toLowerCase()}%`); }
-  if (req.query.zip)      { where += ' AND j.zip = ?';                params.push(req.query.zip); }
+  if (req.query.category) { where += ' AND j.category = ?';       params.push(req.query.category); }
+  if (req.query.city)     { where += ' AND LOWER(j.city) LIKE ?'; params.push(`%${req.query.city.toLowerCase()}%`); }
+  if (req.query.zip)      { where += ' AND j.zip = ?';            params.push(req.query.zip); }
 
   const jobs  = db.prepare(`
     SELECT id, poster_name, title, description, category, pay, city, state, zip, status, created_at
@@ -57,7 +61,7 @@ router.get('/mine/student', requireAuth, (req, res) => {
   const jobs = db.prepare(`
     SELECT j.id, j.poster_name, j.title, j.category, j.pay, j.city, j.state,
            j.status, j.created_at, a.status AS application_status, a.id AS application_id,
-           (SELECT COUNT(*) FROM ratings r WHERE r.job_id = j.id AND r.rated_by = 'poster') AS poster_rated
+           (SELECT COUNT(*) FROM ratings r WHERE r.job_id = j.id AND r.rated_by = 'poster') AS student_rated_poster
     FROM applications a
     JOIN jobs j ON j.id = a.job_id
     WHERE a.student_id = ?
@@ -66,7 +70,7 @@ router.get('/mine/student', requireAuth, (req, res) => {
   return res.json({ jobs });
 });
 
-// ── GET /api/jobs/:id — public single job ───────────────────
+// ── GET /api/jobs/:id ───────────────────────────────────────
 router.get('/:id', (req, res) => {
   const job = db.prepare(`
     SELECT id, poster_name, title, description, category, pay,
@@ -77,56 +81,96 @@ router.get('/:id', (req, res) => {
   return res.json({ job });
 });
 
-// ── POST /api/jobs — NO ACCOUNT REQUIRED ────────────────────
-router.post('/', [
-  body('poster_name').trim().notEmpty().withMessage('Full legal name is required.'),
-  body('poster_email').isEmail().normalizeEmail().withMessage('Valid email is required.'),
-  body('poster_phone').trim().notEmpty().withMessage('Phone number is required.'),
-  body('poster_address').trim().notEmpty().withMessage('Your home address is required.'),
-  body('poster_dob').trim().notEmpty().withMessage('Date of birth is required.'),
-  body('poster_id_type').trim().isIn(["Driver's License","State ID","Passport","Other"])
-    .withMessage('Government ID type is required.'),
-  body('poster_id_num').trim().notEmpty().withMessage('Government ID number is required.'),
-  body('poster_agreed').equals('true').withMessage('You must agree to the terms of responsibility.'),
-  body('title').trim().notEmpty().isLength({ max: 100 }).withMessage('Title required (max 100 chars).'),
-  body('description').trim().notEmpty().isLength({ max: 1000 }).withMessage('Description required.'),
-  body('category').isIn(CATEGORIES).withMessage('Select a valid category.'),
-  body('pay').isFloat({ min: 5, max: 2000 }).withMessage('Pay must be between $5 and $2000.'),
-  body('address').trim().notEmpty().withMessage('Task address required.'),
-  body('city').trim().notEmpty().withMessage('City required.'),
-  body('state').trim().isLength({ min: 2, max: 2 }).withMessage('Two-letter state required.'),
-  body('zip').trim().matches(/^\d{5}$/).withMessage('Valid 5-digit ZIP required.'),
-], (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+// ── POST /api/jobs — multipart form, ID photo upload ────────
+// Uses multer to handle file, then validates all text fields manually.
+router.post('/', (req, res, next) => {
+  uploadIdPhoto(req, res, (uploadErr) => {
+    if (uploadErr) {
+      return res.status(400).json({ error: uploadErr.message });
+    }
 
-  const {
-    poster_name, poster_email, poster_phone, poster_address, poster_dob,
-    poster_id_type, poster_id_num, title, description, category, pay,
-    address, city, state, zip,
-  } = req.body;
-
-  const id = uuidv4();
-  db.prepare(`
-    INSERT INTO jobs (
-      id, poster_name, poster_email, poster_phone, poster_address, poster_dob,
+    // Validate required text fields
+    const {
+      poster_name, poster_email, poster_phone, poster_address, poster_dob,
       poster_id_type, poster_id_num, poster_agreed,
-      title, description, category, pay, address, city, state, zip
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id, poster_name, poster_email, poster_phone, poster_address, poster_dob,
-    poster_id_type, poster_id_num,
-    title, description, category, parseFloat(pay), address, city, state.toUpperCase(), zip
-  );
+      title, description, category, pay, address, city, state, zip,
+    } = req.body;
 
-  return res.status(201).json({
-    message: 'Task posted! Students will apply and contact you.',
-    jobId: id,
+    const errors = [];
+    if (!poster_name?.trim())    errors.push('Full legal name is required.');
+    if (!poster_email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(poster_email))
+                                  errors.push('Valid email is required.');
+    if (!poster_phone?.trim())   errors.push('Phone number is required.');
+    if (!poster_address?.trim()) errors.push('Your home address is required.');
+    if (!poster_dob?.trim())     errors.push('Date of birth is required.');
+    if (!['Driver\'s License','State ID','Passport','Other'].includes(poster_id_type))
+                                  errors.push('Government ID type is required.');
+    if (!poster_id_num?.trim())  errors.push('Government ID number is required.');
+    if (!req.file)               errors.push('A photo of your government ID is required.');
+    if (poster_agreed !== 'true') errors.push('You must agree to the terms of responsibility.');
+    if (!title?.trim() || title.length > 100) errors.push('Title required (max 100 chars).');
+    if (!description?.trim())    errors.push('Description is required.');
+    if (!CATEGORIES.includes(category)) errors.push('Select a valid category.');
+    const payNum = parseFloat(pay);
+    if (isNaN(payNum) || payNum < 5 || payNum > 2000) errors.push('Pay must be between $5 and $2000.');
+    if (!address?.trim())        errors.push('Task address required.');
+    if (!city?.trim())           errors.push('City required.');
+    if (!state?.trim() || state.length !== 2) errors.push('Two-letter state required.');
+    if (!/^\d{5}$/.test(zip))   errors.push('Valid 5-digit ZIP required.');
+
+    if (errors.length) {
+      // Clean up uploaded file if validation fails
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+      return res.status(400).json({ error: errors[0] });
+    }
+
+    // ── Age check: poster must be 18+ ──────────────────────
+    if (!isPosterOldEnough(poster_dob)) {
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+      return res.status(400).json({
+        error: 'You must be 18 years of age or older to post a task on Campus Hands.',
+      });
+    }
+
+    const id = uuidv4();
+    db.prepare(`
+      INSERT INTO jobs (
+        id, poster_name, poster_email, poster_phone, poster_address, poster_dob,
+        poster_id_type, poster_id_num, poster_id_photo, poster_agreed,
+        title, description, category, pay, address, city, state, zip
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      poster_name.trim(),
+      poster_email.trim().toLowerCase(),
+      poster_phone.trim(),
+      poster_address.trim(),
+      poster_dob.trim(),
+      poster_id_type,
+      poster_id_num.trim(),
+      req.file.filename,  // stored filename only, not full path
+      title.trim(),
+      description.trim(),
+      category,
+      payNum,
+      address.trim(),
+      city.trim(),
+      state.trim().toUpperCase(),
+      zip.trim()
+    );
+
+    return res.status(201).json({
+      message: 'Task posted! Students will apply and contact you.',
+      jobId: id,
+    });
   });
 });
 
-// ── POST /api/jobs/:id/mark-complete — poster marks job done ─
-// Moves status to 'pending_review' so student can rate the poster
+// ── POST /api/jobs/:id/mark-complete ────────────────────────
 router.post('/:id/mark-complete', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
 ], (req, res) => {
@@ -148,11 +192,10 @@ router.post('/:id/mark-complete', [
   return res.json({ message: 'Task marked complete. Both parties can now leave a rating.' });
 });
 
-// ── POST /api/jobs/:id/rate — submit a rating ───────────────
+// ── POST /api/jobs/:id/rate ──────────────────────────────────
 router.post('/:id/rate', [
   body('stars').isInt({ min: 1, max: 5 }).withMessage('Stars must be 1–5.'),
   body('comment').optional().trim().isLength({ max: 500 }),
-  // one of these two must be present
   body('poster_email').optional().isEmail().normalizeEmail(),
   body('student_token').optional().trim(),
 ], (req, res) => {
@@ -169,18 +212,13 @@ router.post('/:id/rate', [
   const { stars, comment, poster_email, student_token } = req.body;
   let rated_by = null;
 
-  // Poster rates student
   if (poster_email) {
     if (job.poster_email !== poster_email) {
       return res.status(403).json({ error: 'Email does not match this task.' });
     }
     rated_by = 'poster';
-  }
-  // Student rates poster (via JWT — attach requireAuth inline check)
-  else if (student_token) {
-    // Verify student is the assigned one
+  } else if (student_token) {
     try {
-      const jwt     = require('jsonwebtoken');
       const payload = jwt.verify(student_token, process.env.JWT_SECRET);
       if (payload.userId !== job.student_id) {
         return res.status(403).json({ error: 'You are not the assigned student for this task.' });
@@ -201,7 +239,6 @@ router.post('/:id/rate', [
   db.prepare('INSERT INTO ratings (id, job_id, student_id, rated_by, stars, comment) VALUES (?, ?, ?, ?, ?, ?)')
     .run(ratingId, job.id, job.student_id, rated_by, parseInt(stars), comment || null);
 
-  // Update student's average rating when poster rates
   if (rated_by === 'poster') {
     const stats = db.prepare(`
       SELECT AVG(stars) AS avg, COUNT(*) AS cnt FROM ratings
@@ -211,7 +248,6 @@ router.post('/:id/rate', [
       .run(Math.round(stats.avg * 10) / 10, stats.cnt, job.student_id);
   }
 
-  // If both sides have rated, mark fully completed
   const ratingCount = db.prepare('SELECT COUNT(*) AS cnt FROM ratings WHERE job_id = ?').get(job.id).cnt;
   if (ratingCount >= 2) {
     db.prepare("UPDATE jobs SET status = 'completed' WHERE id = ?").run(job.id);
@@ -220,7 +256,7 @@ router.post('/:id/rate', [
   return res.json({ message: 'Rating submitted. Thank you!' });
 });
 
-// ── DELETE /api/jobs/:id — poster cancels ───────────────────
+// ── DELETE /api/jobs/:id ─────────────────────────────────────
 router.delete('/:id', [
   body('poster_email').isEmail().normalizeEmail(),
 ], (req, res) => {

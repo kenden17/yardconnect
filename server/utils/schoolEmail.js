@@ -19,8 +19,14 @@ const SCHOOL_PATTERNS = [
 function isSchoolEmail(email) {
   if (!email || typeof email !== 'string') return false;
   const lower = email.toLowerCase().trim();
-  // Dev shortcut
+
+  // Dev mode: skip school email check entirely
+  if (process.env.NODE_ENV !== 'production') return true;
+
+  // Dev/test shortcut domains
   if (lower.endsWith('@campushands.test')) return true;
+  if (lower.endsWith('@test.com'))        return true;
+
   return SCHOOL_PATTERNS.some(re => re.test(lower));
 }
 

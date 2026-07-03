@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ✅ Accepted! The poster will contact you. When done, they'll mark it complete.
             </div>` : ''}
 
-          ${j.status === 'pending_review' && !j.poster_rated ? `
+          ${j.status === 'pending_review' && !j.student_rated_poster ? `
             <div style="margin-top:12px">
               <p style="font-size:.85rem;color:var(--dim);margin-bottom:8px">
                 🎉 Task complete! Leave a rating for the poster.

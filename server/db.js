@@ -15,6 +15,7 @@ db.exec(`
     name              TEXT NOT NULL,
     email             TEXT UNIQUE NOT NULL,
     password          TEXT NOT NULL,
+    dob               TEXT NOT NULL DEFAULT '',
     verified          INTEGER NOT NULL DEFAULT 1,
     verify_token      TEXT,
     stripe_account_id TEXT,
@@ -24,28 +25,29 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS jobs (
-    id              TEXT PRIMARY KEY,
-    poster_name     TEXT NOT NULL,
-    poster_email    TEXT NOT NULL,
-    poster_phone    TEXT NOT NULL,
-    poster_address  TEXT NOT NULL,
-    poster_dob      TEXT NOT NULL,
-    poster_id_type  TEXT NOT NULL,
-    poster_id_num   TEXT NOT NULL,
-    poster_agreed   INTEGER NOT NULL DEFAULT 0,
-    title           TEXT NOT NULL,
-    description     TEXT NOT NULL,
-    category        TEXT NOT NULL,
-    pay             REAL NOT NULL,
-    address         TEXT NOT NULL,
-    city            TEXT NOT NULL,
-    state           TEXT NOT NULL,
-    zip             TEXT NOT NULL,
-    status          TEXT NOT NULL DEFAULT 'open'
-                    CHECK(status IN ('open','assigned','pending_review','completed','cancelled')),
-    student_id      TEXT REFERENCES users(id),
-    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-    completed_at    TEXT
+    id               TEXT PRIMARY KEY,
+    poster_name      TEXT NOT NULL,
+    poster_email     TEXT NOT NULL,
+    poster_phone     TEXT NOT NULL,
+    poster_address   TEXT NOT NULL,
+    poster_dob       TEXT NOT NULL,
+    poster_id_type   TEXT NOT NULL,
+    poster_id_num    TEXT NOT NULL,
+    poster_id_photo  TEXT,
+    poster_agreed    INTEGER NOT NULL DEFAULT 0,
+    title            TEXT NOT NULL,
+    description      TEXT NOT NULL,
+    category         TEXT NOT NULL,
+    pay              REAL NOT NULL,
+    address          TEXT NOT NULL,
+    city             TEXT NOT NULL,
+    state            TEXT NOT NULL,
+    zip              TEXT NOT NULL,
+    status           TEXT NOT NULL DEFAULT 'open'
+                     CHECK(status IN ('open','assigned','pending_review','completed','cancelled')),
+    student_id       TEXT REFERENCES users(id),
+    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at     TEXT
   );
 
   CREATE TABLE IF NOT EXISTS applications (

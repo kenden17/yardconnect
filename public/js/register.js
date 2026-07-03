@@ -37,10 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
     successEl.classList.add('hidden');
 
     const name  = document.getElementById('name').value.trim();
+    const dob   = document.getElementById('dob').value;
     const email = emailInput.value.trim();
     const pw    = pwInput.value;
 
-    if (!name || !email || !pw) {
+    if (!name || !dob || !email || !pw) {
       errorEl.textContent = 'Please fill in all fields.';
       errorEl.classList.remove('hidden');
       return;
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.textContent = 'Creating account…';
 
     try {
-      const { token, user } = await API.register(name, email, pw);
+      const { token, user } = await API.register(name, email, pw, dob);
       Auth.setSession(token, user);
       window.location.href = '/dashboard.html';
     } catch (err) {

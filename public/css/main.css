@@ -428,3 +428,18 @@ input, select, textarea { font-family: inherit; }
 
 /* status-pending_review badge */
 .status-pending_review { background: rgba(168,85,247,.15); color: #d8b4fe; }
+
+/* ── File Upload ─────────────────────────────────────────── */
+.file-upload-wrap { display: flex; flex-direction: column; gap: 10px; }
+.file-upload-wrap input[type="file"] { display: none; }
+.file-upload-label {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; background: var(--mid);
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  cursor: pointer; font-size: .9rem; color: var(--dim);
+  transition: border-color .2s, color .2s;
+}
+.file-upload-label:hover { border-color: var(--accent); color: var(--white); }
+.id-preview { border-radius: var(--radius); overflow: hidden; max-width: 320px; }
+.id-preview img { width: 100%; display: block; border-radius: var(--radius);
+                  border: 1px solid var(--border); }

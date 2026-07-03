@@ -172,6 +172,7 @@
           <td style="font-size:.78rem;color:var(--dim)">
             ${escHtml(t.poster_id_type||'')}<br/>${escHtml(t.poster_id_num||'')}<br/>
             DOB: ${escHtml(t.poster_dob||'')}<br/>${escHtml(t.poster_address||'')}
+            ${t.poster_id_photo ? `<br/><a href="/uploads/ids/${escHtml(t.poster_id_photo)}?key=${KEY}" target="_blank" style="color:var(--accent)">View ID Photo ↗</a>` : '<br/><span style="color:#fca5a5">No photo</span>'}
           </td>
           <td>${t.app_count}</td>
           <td style="color:var(--dim)">${fmt(t.created_at)}</td>

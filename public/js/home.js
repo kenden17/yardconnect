@@ -132,6 +132,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     descCount.textContent = `${descArea.value.length} / 1000`;
   });
 
+  // ID photo preview
+  const idInput   = document.getElementById('posterIdPhoto');
+  const idPreview = document.getElementById('idPreview');
+  const idPreviewImg = document.getElementById('idPreviewImg');
+  const fileLabel = document.getElementById('fileLabel');
+
+  idInput?.addEventListener('change', () => {
+    const file = idInput.files[0];
+    if (!file) return;
+    fileLabel.textContent = file.name;
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        idPreviewImg.src = e.target.result;
+        idPreview.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      idPreview.classList.add('hidden');
+    }
+  });
+
   postForm?.addEventListener('submit', async e => {
     e.preventDefault();
     postErrorEl.classList.add('hidden');
@@ -139,41 +161,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     postBtn.disabled    = true;
     postBtn.textContent = 'Posting…';
 
-    const data = {
-      poster_name:    document.getElementById('posterName').value.trim(),
-      poster_email:   document.getElementById('posterEmail').value.trim(),
-      poster_phone:   document.getElementById('posterPhone').value.trim(),
-      poster_address: document.getElementById('posterAddress').value.trim(),
-      poster_dob:     document.getElementById('posterDob').value.trim(),
-      poster_id_type: document.getElementById('posterIdType').value,
-      poster_id_num:  document.getElementById('posterIdNum').value.trim(),
-      poster_agreed:  String(document.getElementById('posterAgreed').checked),
-      title:          document.getElementById('taskTitle').value.trim(),
-      category:       document.getElementById('taskCategory').value,
-      description:    document.getElementById('taskDesc').value.trim(),
-      pay:            document.getElementById('taskPay').value,
-      address:        document.getElementById('taskAddress').value.trim(),
-      city:           document.getElementById('taskCity').value.trim(),
-      state:          document.getElementById('taskState').value.trim(),
-      zip:            document.getElementById('taskZip').value.trim(),
-    };
+    // Build FormData for multipart upload (ID photo)
+    const formData = new FormData();
+    formData.append('poster_name',    document.getElementById('posterName').value.trim());
+    formData.append('poster_email',   document.getElementById('posterEmail').value.trim());
+    formData.append('poster_phone',   document.getElementById('posterPhone').value.trim());
+    formData.append('poster_address', document.getElementById('posterAddress').value.trim());
+    formData.append('poster_dob',     document.getElementById('posterDob').value.trim());
+    formData.append('poster_id_type', document.getElementById('posterIdType').value);
+    formData.append('poster_id_num',  document.getElementById('posterIdNum').value.trim());
+    formData.append('poster_agreed',  String(document.getElementById('posterAgreed').checked));
+    formData.append('title',          document.getElementById('taskTitle').value.trim());
+    formData.append('category',       document.getElementById('taskCategory').value);
+    formData.append('description',    document.getElementById('taskDesc').value.trim());
+    formData.append('pay',            document.getElementById('taskPay').value);
+    formData.append('address',        document.getElementById('taskAddress').value.trim());
+    formData.append('city',           document.getElementById('taskCity').value.trim());
+    formData.append('state',          document.getElementById('taskState').value.trim());
+    formData.append('zip',            document.getElementById('taskZip').value.trim());
+
+    const idPhotoFile = document.getElementById('posterIdPhoto').files[0];
+    if (idPhotoFile) formData.append('poster_id_photo', idPhotoFile);
+
+    const posterEmail = document.getElementById('posterEmail').value.trim();
 
     try {
-      const result = await API.postJob(data);
+      // Use raw fetch for multipart — don't set Content-Type header (browser sets boundary)
+      const res  = await fetch('/api/jobs', { method: 'POST', body: formData });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Post failed.');
+
       postSuccessEl.innerHTML = `
         ✅ <strong>Task posted!</strong> Verified students near you can now apply.<br />
         <span style="font-size:.85rem">
           Save this link to manage your task, view applicants, and mark it complete:<br />
-          <a href="/manage.html?job=${escHtml(result.jobId)}&amp;email=${encodeURIComponent(data.poster_email)}"
+          <a href="/manage.html?job=${escHtml(result.jobId)}&amp;email=${encodeURIComponent(posterEmail)}"
              style="color:var(--accent);word-break:break-all">
-            /manage.html?job=${escHtml(result.jobId)}&amp;email=${encodeURIComponent(data.poster_email)}
+            campushands.app/manage.html?job=${escHtml(result.jobId)}
           </a>
         </span>
       `;
       postSuccessEl.classList.remove('hidden');
       postForm.reset();
       descCount.textContent = '0 / 1000';
-      // Reload the task list so new task appears
+      idPreview.classList.add('hidden');
       setTimeout(() => loadJobs(1), 800);
     } catch (err) {
       postErrorEl.textContent = err.message;

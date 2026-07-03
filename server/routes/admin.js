@@ -5,10 +5,10 @@ require('dotenv').config();
 
 const router = express.Router();
 
-// Hardcoded fallback so it works even without a .env file
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'CVGhuH8E';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 function requireAdmin(req, res, next) {
+  if (!ADMIN_SECRET) return res.status(503).json({ error: 'Admin not configured.' });
   const key = req.headers['x-admin-key'] || req.query.key;
   if (!key || key !== ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized.' });

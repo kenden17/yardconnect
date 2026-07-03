@@ -103,7 +103,7 @@
             <div class="step__num">1</div>
             <div>
               <h3>Sign Up with School Email</h3>
-              <p>Create an account using your k12 or school email. Verify it with one click.</p>
+              <p>Create an account using your k12 or school email. You're in instantly.</p>
             </div>
           </div>
           <div class="step">
@@ -184,6 +184,20 @@
             <input type="text" id="posterIdNum" placeholder="ID number" required />
             <span class="field-hint">Stored securely. Only disclosed if required by law.</span>
           </div>
+        </div>
+        <div class="form-group">
+          <label for="posterIdPhoto">Photo of Your ID *</label>
+          <div class="file-upload-wrap">
+            <input type="file" id="posterIdPhoto" accept="image/*,.pdf" required />
+            <label for="posterIdPhoto" class="file-upload-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="fileLabel">Choose photo or drag here</span>
+            </label>
+            <div class="id-preview hidden" id="idPreview">
+              <img id="idPreviewImg" src="" alt="ID preview" />
+            </div>
+          </div>
+          <span class="field-hint">Upload a clear photo of your Driver's License, State ID, or Passport. Max 10MB. Stored securely and never shared publicly.</span>
         </div>
 
         <!-- SECTION 2: Task Details -->
@@ -312,8 +326,8 @@
         </div>
         <div>
           <h4>Legal</h4>
-          <a href="/terms.html">Terms of Service</a>
-          <a href="/privacy.html">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Privacy Policy</a>
         </div>
       </div>
     </div>
