@@ -13,8 +13,7 @@ function requireAuth(req, res, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user    = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.userId);
 
-    if (!user)          return res.status(401).json({ error: 'User not found.' });
-    if (!user.verified) return res.status(403).json({ error: 'Please verify your email first.' });
+    if (!user) return res.status(401).json({ error: 'User not found.' });
 
     const { password, verify_token, ...safeUser } = user;
     req.user = safeUser;

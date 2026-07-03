@@ -1,27 +1,6 @@
 // public/js/dashboard.js — Student dashboard
 document.addEventListener('DOMContentLoaded', async () => {
 
-  // ── Handle email verification redirect ──────────────────
-  // When a student clicks the verification link they land here with
-  // ?verified=1&token=... — we store the token so they're logged in.
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('verified') === '1' && urlParams.get('token')) {
-    const token = urlParams.get('token');
-    try {
-      // Store token first, then fetch user info
-      localStorage.setItem('ch_token', token);
-      const { user } = await API.me();
-      Auth.setSession(token, user);
-      // Clean the URL
-      history.replaceState({}, '', '/dashboard.html');
-      showAlert('🎉 Email verified! Welcome to Campus Hands.');
-    } catch (_) {
-      localStorage.removeItem('ch_token');
-      window.location.href = '/login.html';
-      return;
-    }
-  }
-
   const user = Auth.requireAuth();
   if (!user) return;
 
@@ -34,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('settingsEmail').textContent = user.email;
 
   // Stripe onboarding success
+  const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('stripe') === 'success') showAlert('✅ Payout account connected!');
 
   // ── Panel nav ────────────────────────────────────────────

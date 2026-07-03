@@ -50,16 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.textContent = 'Creating account…';
 
     try {
-      await API.register(name, email, pw);
-      successEl.innerHTML = `
-        🎉 Account created!<br />
-        <strong>Check your school email</strong> for a verification link.
-        Click it to activate your account — then you can log in.
-      `;
-      successEl.classList.remove('hidden');
-      form.reset();
-      pwStrength.className = 'pw-strength';
-      emailHint.textContent = '';
+      const { token, user } = await API.register(name, email, pw);
+      Auth.setSession(token, user);
+      window.location.href = '/dashboard.html';
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.classList.remove('hidden');

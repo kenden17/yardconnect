@@ -19,7 +19,7 @@
       <h1 class="auth-title">Welcome back</h1>
       <p class="auth-sub">Log in to find tasks and earn.</p>
 
-      <div class="alert alert--success hidden" id="verifiedAlert">
+      <div class="alert alert--success hidden" id="verifiedAlert" style="display:none!important">
         ✅ Email verified! Logging you in…
       </div>
 
@@ -50,7 +50,24 @@
     </div>
   </main>
 
+  <!-- Hidden admin trigger — type the secret code in the email field and press Enter 3x -->
+  <div id="adminHint" style="text-align:center;margin-top:32px;font-size:.75rem;color:rgba(245,245,240,.15);user-select:none">
+    campus hands v1
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/login.js"></script>
+  <script>
+    // Secret admin access: type the admin code into the email field, then press Ctrl+Shift+A
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        const code = document.getElementById('email').value.trim();
+        if (code) {
+          sessionStorage.setItem('ch_admin_key', code);
+          window.location.href = '/admin.html';
+        }
+      }
+    });
+  </script>
 </body>
 </html>
