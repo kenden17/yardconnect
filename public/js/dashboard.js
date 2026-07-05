@@ -44,8 +44,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function statusBadge(s) {
-    const label = s === 'pending_review' ? 'Awaiting Review' : s;
-    return `<span class="job-card__status status-${s}">${label}</span>`;
+    const labels = {
+      open:            'Open',
+      assigned:        'Assigned',
+      pending_payment: 'Payment Pending',
+      active:          'In Progress',
+      pending_review:  'Awaiting Review',
+      completed:       'Completed',
+      cancelled:       'Cancelled',
+    };
+    return `<span class="job-card__status status-${s}">${labels[s] || s}</span>`;
   }
 
   function fmtDate(dt) {
@@ -229,7 +237,21 @@ document.addEventListener('DOMContentLoaded', async () => {
           ${j.application_status === 'accepted' && j.status === 'assigned' ? `
             <div style="margin-top:10px;padding:10px;background:rgba(34,197,94,.08);
                  border:1px solid rgba(34,197,94,.2);border-radius:4px;font-size:.85rem">
-              ✅ Accepted! The poster will contact you. When done, they'll mark it complete.
+              ✅ You've been accepted! The poster will contact you to coordinate.
+              ${j.address ? `<br/><span style="color:var(--dim)">📍 ${escHtml(j.address)}</span>` : ''}
+            </div>` : ''}
+
+          ${j.status === 'pending_payment' ? `
+            <div style="margin-top:10px;padding:10px;background:rgba(245,158,11,.08);
+                 border:1px solid rgba(245,158,11,.2);border-radius:4px;font-size:.85rem">
+              ⏳ The poster is processing payment. Work begins once payment is confirmed.
+            </div>` : ''}
+
+          ${j.status === 'active' ? `
+            <div style="margin-top:10px;padding:10px;background:rgba(59,130,246,.08);
+                 border:1px solid rgba(59,130,246,.2);border-radius:4px;font-size:.85rem">
+              🚀 Work is in progress! Complete the task, then the poster will release payment.
+              ${j.address ? `<br/><span style="color:var(--dim)">📍 ${escHtml(j.address)}</span>` : ''}
             </div>` : ''}
 
           ${j.status === 'pending_review' && !j.student_rated_poster ? `

@@ -35,7 +35,7 @@ router.post('/register', [
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
-  const { name, email, dob, password } = req.body;
+  const { name, email, dob, password, agreed_to_guidelines } = req.body;
 
   // School email check
   if (!isSchoolEmail(email)) {
@@ -44,10 +44,18 @@ router.post('/register', [
     });
   }
 
-  // Age check: must be 13–20
+  // Community guidelines check (production only)
+  if (process.env.NODE_ENV === 'production') {
+    const agreedToGuidelines = req.body.agreed_to_guidelines;
+    if (!agreedToGuidelines || agreedToGuidelines === false || agreedToGuidelines === 'false') {
+      return res.status(400).json({ error: 'You must agree to the Community Guidelines.' });
+    }
+  }
+
+  // Age check: must be 16–20
   if (!isStudentAgeValid(dob)) {
     return res.status(400).json({
-      error: 'Students must be between 13 and 20 years old to join Campus Hands.',
+      error: 'Students must be between 16 and 20 years old to join Campus Hands.',
     });
   }
 

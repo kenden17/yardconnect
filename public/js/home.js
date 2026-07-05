@@ -50,7 +50,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const user = Auth.getUser();
 
-      grid.innerHTML = jobs.map(job => `
+      grid.innerHTML = jobs.map(job => {
+        const badges = [];
+        if (job.has_pets)          badges.push('🐾 Pets');
+        if (job.has_stairs)        badges.push('🪜 Stairs');
+        if (job.heavy_lifting)     badges.push('💪 Heavy lifting');
+        if (job.duration_estimate) badges.push('⏱ ' + escHtml(job.duration_estimate));
+        const badgeHtml = badges.length
+          ? `<div class="job-badges">${badges.map(b => `<span class="job-badge">${b}</span>`).join('')}</div>`
+          : '';
+        return `
         <article class="job-card">
           <div class="job-card__cat">${escHtml(job.category)}</div>
           <h3 class="job-card__title">${escHtml(job.title)}</h3>
@@ -59,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span>📍 ${escHtml(job.city)}, ${escHtml(job.state)}</span>
             <span>👤 ${escHtml(job.poster_name)}</span>
           </div>
+          ${badgeHtml}
           <div class="job-card__pay">$${parseFloat(job.pay).toFixed(2)}</div>
           <div class="job-card__actions">
             ${user
@@ -67,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
           </div>
         </article>
-      `).join('');
+      `}).join('');
 
       grid.querySelectorAll('.apply-btn').forEach(btn => {
         btn.addEventListener('click', () => applyToJob(btn.dataset.id, btn));
@@ -171,10 +181,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     formData.append('poster_id_type', document.getElementById('posterIdType').value);
     formData.append('poster_id_num',  document.getElementById('posterIdNum').value.trim());
     formData.append('poster_agreed',  String(document.getElementById('posterAgreed').checked));
+    formData.append('poster_agreed_guidelines', String(document.getElementById('posterAgreedGuidelines')?.checked || false));
     formData.append('title',          document.getElementById('taskTitle').value.trim());
     formData.append('category',       document.getElementById('taskCategory').value);
     formData.append('description',    document.getElementById('taskDesc').value.trim());
     formData.append('pay',            document.getElementById('taskPay').value);
+    formData.append('duration_estimate', document.getElementById('taskDuration')?.value.trim() || '');
+    formData.append('has_pets',       String(document.getElementById('hasPets')?.checked || false));
+    formData.append('has_stairs',     String(document.getElementById('hasStairs')?.checked || false));
+    formData.append('heavy_lifting',  String(document.getElementById('heavyLifting')?.checked || false));
     formData.append('address',        document.getElementById('taskAddress').value.trim());
     formData.append('city',           document.getElementById('taskCity').value.trim());
     formData.append('state',          document.getElementById('taskState').value.trim());

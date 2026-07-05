@@ -427,7 +427,14 @@ input, select, textarea { font-family: inherit; }
 .star-hint { font-size: .82rem; color: var(--dim); min-height: 1.2em; }
 
 /* status-pending_review badge */
-.status-pending_review { background: rgba(168,85,247,.15); color: #d8b4fe; }
+.status-pending_review  { background: rgba(168,85,247,.15);  color: #d8b4fe; }
+.status-pending_payment { background: rgba(245,158,11,.15);  color: #fcd34d; }
+.status-active          { background: rgba(59,130,246,.15);  color: #93c5fd; }
+
+/* ── Job Disclosure Badges ───────────────────────────────── */
+.job-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.job-badge  { font-size: .72rem; padding: 2px 8px; border-radius: 20px;
+              background: rgba(255,255,255,.08); color: var(--dim); }
 
 /* ── File Upload ─────────────────────────────────────────── */
 .file-upload-wrap { display: flex; flex-direction: column; gap: 10px; }

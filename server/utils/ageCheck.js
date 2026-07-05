@@ -18,12 +18,12 @@ function isPosterOldEnough(dobString) {
   return getAge(dobString) >= 18;
 }
 
-// Student must be 13–20
+// Student must be 16–20
 // In dev mode always passes
 function isStudentAgeValid(dobString) {
   if (process.env.NODE_ENV !== 'production') return true;
   const age = getAge(dobString);
-  return age >= 13 && age <= 20;
+  return age >= 16 && age <= 20;
 }
 
 module.exports = { getAge, isPosterOldEnough, isStudentAgeValid };

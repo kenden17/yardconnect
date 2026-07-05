@@ -48,11 +48,19 @@
         <!-- Mark complete button -->
         <div id="markCompleteSection" class="hidden" style="margin-top:20px">
           <div class="terms-box" style="margin-bottom:16px">
-            <strong>Before marking complete:</strong> confirm the student has finished the work
-            to your satisfaction. Once marked complete, the student can rate you and payment
-            can be released.
+            <strong>Before marking complete:</strong> confirm the student has agreed to do the work
+            and is ready to begin. Once marked complete, payment will be processed and work begins.
           </div>
-          <button class="btn btn--accent" id="markCompleteBtn">✅ Mark Task Complete</button>
+          <button class="btn btn--accent" id="markCompleteBtn">✅ Confirm &amp; Request Payment</button>
+        </div>
+
+        <!-- Release payment / mark work done -->
+        <div id="releasePaymentSection" class="hidden" style="margin-top:20px">
+          <div class="terms-box" style="margin-bottom:16px">
+            <strong>Mark Work Done:</strong> confirm the student has completed the task to your
+            satisfaction. This releases payment to them and opens the rating period.
+          </div>
+          <button class="btn btn--accent" id="releasePaymentBtn">✅ Mark Work Done &amp; Release Payment</button>
         </div>
 
         <!-- Rate student -->
@@ -99,8 +107,15 @@
       return d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     }
     function statusLabel(s) {
-      const map = { open:'Open', assigned:'Assigned', pending_review:'Pending Review',
-                    completed:'Completed', cancelled:'Cancelled' };
+      const map = {
+        open:            'Open',
+        assigned:        'Assigned — Student Selected',
+        pending_payment: 'Awaiting Payment',
+        active:          'In Progress',
+        pending_review:  'Pending Review',
+        completed:       'Completed',
+        cancelled:       'Cancelled',
+      };
       return map[s] || s;
     }
 
@@ -181,7 +196,12 @@
         document.getElementById('markCompleteSection').classList.remove('hidden');
       }
 
-      // Rate student — show when pending_review or completed (and not yet rated)
+      // Release payment — show when active (payment confirmed, work in progress)
+      if (job.status === 'active') {
+        document.getElementById('releasePaymentSection').classList.remove('hidden');
+      }
+
+      // Rate student — show when pending_review or completed
       if (job.status === 'pending_review' || job.status === 'completed') {
         document.getElementById('rateStudentSection').classList.remove('hidden');
         setupPosterRating(job.id);
@@ -224,9 +244,9 @@
       } catch (err) { alert(err.message); }
     }
 
-    // ── Mark complete ─────────────────────────────────────
+    // ── Mark complete (assigned → pending_payment) ────────
     document.getElementById('markCompleteBtn').addEventListener('click', async () => {
-      if (!confirm('Mark this task as complete? This cannot be undone.')) return;
+      if (!confirm('Confirm the student is ready to begin work? This will request payment.')) return;
       const btn = document.getElementById('markCompleteBtn');
       btn.disabled = true; btn.textContent = 'Saving…';
       try {
@@ -237,7 +257,35 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
+        currentJob.status = 'pending_payment';
         document.getElementById('markCompleteSection').classList.add('hidden');
+        document.getElementById('completeSuccess').textContent = '✅ ' + data.message;
+        document.getElementById('completeSuccess').classList.remove('hidden');
+        // Refresh the task info card
+        document.getElementById('taskInfo').querySelector('p:nth-child(4)').innerHTML =
+          `Status: <strong>${statusLabel('pending_payment')}</strong>`;
+      } catch (err) {
+        document.getElementById('completeError').textContent = err.message;
+        document.getElementById('completeError').classList.remove('hidden');
+        btn.disabled = false; btn.textContent = '✅ Confirm & Request Payment';
+      }
+    });
+
+    // ── Release payment (active → pending_review) ─────────
+    document.getElementById('releasePaymentBtn').addEventListener('click', async () => {
+      if (!confirm('Confirm the student has completed the work to your satisfaction? This releases payment to them.')) return;
+      const btn = document.getElementById('releasePaymentBtn');
+      btn.disabled = true; btn.textContent = 'Releasing…';
+      try {
+        const res = await fetch(`${BASE}/jobs/${encodeURIComponent(currentJob.id)}/release`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ poster_email: currentEmail }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        currentJob.status = 'pending_review';
+        document.getElementById('releasePaymentSection').classList.add('hidden');
         document.getElementById('rateStudentSection').classList.remove('hidden');
         setupPosterRating(currentJob.id);
         document.getElementById('completeSuccess').textContent = '✅ ' + data.message;
@@ -245,7 +293,7 @@
       } catch (err) {
         document.getElementById('completeError').textContent = err.message;
         document.getElementById('completeError').classList.remove('hidden');
-        btn.disabled = false; btn.textContent = '✅ Mark Task Complete';
+        btn.disabled = false; btn.textContent = '✅ Mark Work Done & Release Payment';
       }
     });
 

@@ -25,7 +25,8 @@ const API = (() => {
 
   return {
     // Auth (students only)
-    register: (name, email, pw, dob) => request('POST', '/auth/register', { name, email, password: pw, dob }),
+    register: (name, email, pw, dob, agreedToGuidelines) =>
+      request('POST', '/auth/register', { name, email, password: pw, dob, agreed_to_guidelines: agreedToGuidelines }),
     login:    (email, pw)       => request('POST', '/auth/login',    { email, password: pw }),
     logout:   ()                => request('POST', '/auth/logout'),
     me:       ()                => request('GET',  '/auth/me'),
@@ -43,5 +44,9 @@ const API = (() => {
     // Payments (student)
     paymentHistory: () => request('GET',  '/payments/history'),
     stripeOnboard:  () => request('POST', '/payments/onboard-student'),
+
+    // Job release (poster marks work done: active → pending_review)
+    releaseJob: (jobId, posterEmail) =>
+      request('POST', `/jobs/${jobId}/release`, { poster_email: posterEmail }),
   };
 })();

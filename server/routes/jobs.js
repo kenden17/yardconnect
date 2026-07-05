@@ -15,14 +15,30 @@ const CATEGORIES = [
   'Errands & Delivery',
   'Yard & Outdoor',
   'Cleaning & Tidying',
-  'Moving & Hauling',
+  'Heavy Moving & Hauling',
+  'Furniture Assembly',
   'Pet Care',
   'Tech Help',
   'Tutoring & Academic',
-  'Event Help',
+  'Event Staffing',
   'Grocery & Shopping',
   'Snow & Ice',
+  'Babysitting & Childcare',
   'Other',
+];
+
+// Prohibited keywords — checked on job title + description (case-insensitive)
+const PROHIBITED_KEYWORDS = [
+  'electrical', 'wiring', 'circuit breaker',
+  'plumbing', 'pipe fitting', 'sewer',
+  'roofing', 'roof repair',
+  'tree climbing', 'chainsaw',
+  'firearm', 'weapon', 'gun', 'ammunition',
+  'hazardous chemical', 'pesticide', 'asbestos',
+  'medical', 'nursing', 'injection', 'prescription',
+  'drug', 'alcohol service', 'bartend',
+  'passenger transport', 'rideshare', 'driving people',
+  'overnight childcare',
 ];
 
 // ── GET /api/jobs — public list ─────────────────────────────
@@ -44,7 +60,8 @@ router.get('/', [
   if (req.query.zip)      { where += ' AND j.zip = ?';            params.push(req.query.zip); }
 
   const jobs  = db.prepare(`
-    SELECT id, poster_name, title, description, category, pay, city, state, zip, status, created_at
+    SELECT id, poster_name, title, description, category, pay, city, state, zip, status, created_at,
+           has_pets, has_stairs, heavy_lifting, duration_estimate
     FROM jobs j ${where}
     ORDER BY j.created_at DESC LIMIT ? OFFSET ?
   `).all([...params, limit, offset]);
@@ -60,7 +77,7 @@ router.get('/categories', (req, res) => res.json({ categories: CATEGORIES }));
 router.get('/mine/student', requireAuth, (req, res) => {
   const jobs = db.prepare(`
     SELECT j.id, j.poster_name, j.title, j.category, j.pay, j.city, j.state,
-           j.status, j.created_at, a.status AS application_status, a.id AS application_id,
+           j.address, j.status, j.created_at, a.status AS application_status, a.id AS application_id,
            (SELECT COUNT(*) FROM ratings r WHERE r.job_id = j.id AND r.rated_by = 'poster') AS student_rated_poster
     FROM applications a
     JOIN jobs j ON j.id = a.job_id
@@ -74,11 +91,29 @@ router.get('/mine/student', requireAuth, (req, res) => {
 router.get('/:id', (req, res) => {
   const job = db.prepare(`
     SELECT id, poster_name, title, description, category, pay,
-           address, city, state, zip, status, created_at
+           city, state, zip, status, created_at,
+           has_pets, has_stairs, heavy_lifting, duration_estimate, photo_url,
+           address, student_id
     FROM jobs WHERE id = ?
   `).get(req.params.id);
   if (!job) return res.status(404).json({ error: 'Task not found.' });
-  return res.json({ job });
+
+  // Determine if the requesting student has an accepted application
+  let includeAddress = false;
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+      const accepted = db.prepare(
+        "SELECT id FROM applications WHERE job_id = ? AND student_id = ? AND status = 'accepted'"
+      ).get(req.params.id, payload.userId);
+      if (accepted) includeAddress = true;
+    } catch (_) { /* invalid token — no address */ }
+  }
+
+  const { address, student_id, ...publicJob } = job;
+  const responseJob = includeAddress ? { ...publicJob, address } : publicJob;
+  return res.json({ job: responseJob });
 });
 
 // ── POST /api/jobs — multipart form, ID photo upload ────────
@@ -92,8 +127,9 @@ router.post('/', (req, res, next) => {
     // Validate required text fields
     const {
       poster_name, poster_email, poster_phone, poster_address, poster_dob,
-      poster_id_type, poster_id_num, poster_agreed,
+      poster_id_type, poster_id_num, poster_agreed, poster_agreed_guidelines,
       title, description, category, pay, address, city, state, zip,
+      duration_estimate, has_pets, has_stairs, heavy_lifting,
     } = req.body;
 
     const errors = [];
@@ -108,6 +144,14 @@ router.post('/', (req, res, next) => {
     if (!poster_id_num?.trim())  errors.push('Government ID number is required.');
     if (!req.file)               errors.push('A photo of your government ID is required.');
     if (poster_agreed !== 'true') errors.push('You must agree to the terms of responsibility.');
+
+    // Community guidelines check (production only)
+    if (process.env.NODE_ENV === 'production') {
+      if (!poster_agreed_guidelines || poster_agreed_guidelines === 'false') {
+        errors.push('You must agree to the Community Guidelines.');
+      }
+    }
+
     if (!title?.trim() || title.length > 100) errors.push('Title required (max 100 chars).');
     if (!description?.trim())    errors.push('Description is required.');
     if (!CATEGORIES.includes(category)) errors.push('Select a valid category.');
@@ -117,6 +161,18 @@ router.post('/', (req, res, next) => {
     if (!city?.trim())           errors.push('City required.');
     if (!state?.trim() || state.length !== 2) errors.push('Two-letter state required.');
     if (!/^\d{5}$/.test(zip))   errors.push('Valid 5-digit ZIP required.');
+
+    // ── Prohibited keywords check ──────────────────────────
+    if (title?.trim() || description?.trim()) {
+      const combined = ((title || '') + ' ' + (description || '')).toLowerCase();
+      const matched = PROHIBITED_KEYWORDS.find(kw => combined.includes(kw.toLowerCase()));
+      if (matched) {
+        if (req.file) fs.unlink(req.file.path, () => {});
+        return res.status(400).json({
+          error: 'This job type is not permitted on Campus Hands. See our community guidelines.',
+        });
+      }
+    }
 
     if (errors.length) {
       // Clean up uploaded file if validation fails
@@ -141,8 +197,9 @@ router.post('/', (req, res, next) => {
       INSERT INTO jobs (
         id, poster_name, poster_email, poster_phone, poster_address, poster_dob,
         poster_id_type, poster_id_num, poster_id_photo, poster_agreed,
-        title, description, category, pay, address, city, state, zip
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
+        title, description, category, pay, address, city, state, zip,
+        duration_estimate, has_pets, has_stairs, heavy_lifting
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       poster_name.trim(),
@@ -160,7 +217,11 @@ router.post('/', (req, res, next) => {
       address.trim(),
       city.trim(),
       state.trim().toUpperCase(),
-      zip.trim()
+      zip.trim(),
+      duration_estimate?.trim() || null,
+      has_pets === 'true' ? 1 : 0,
+      has_stairs === 'true' ? 1 : 0,
+      heavy_lifting === 'true' ? 1 : 0
     );
 
     return res.status(201).json({
@@ -186,10 +247,31 @@ router.post('/:id/mark-complete', [
     return res.status(400).json({ error: 'Task must be assigned before marking complete.' });
   }
 
-  db.prepare("UPDATE jobs SET status = 'pending_review', completed_at = datetime('now') WHERE id = ?")
+  db.prepare("UPDATE jobs SET status = 'pending_payment', completed_at = datetime('now') WHERE id = ?")
     .run(req.params.id);
 
-  return res.json({ message: 'Task marked complete. Both parties can now leave a rating.' });
+  return res.json({ message: 'Task marked complete. You can now pay the student to begin work review.' });
+});
+
+// ── POST /api/jobs/:id/release ───────────────────────────────
+// Poster releases payment (marks work done): active → pending_review
+router.post('/:id/release', [
+  body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+  const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Task not found.' });
+  if (job.poster_email !== req.body.poster_email) {
+    return res.status(403).json({ error: 'Email does not match this task.' });
+  }
+  if (job.status !== 'active') {
+    return res.status(400).json({ error: 'Task must be active before releasing payment.' });
+  }
+
+  db.prepare("UPDATE jobs SET status = 'pending_review' WHERE id = ?").run(req.params.id);
+  return res.json({ message: 'Payment released. Both parties can now leave a rating.' });
 });
 
 // ── POST /api/jobs/:id/rate ──────────────────────────────────

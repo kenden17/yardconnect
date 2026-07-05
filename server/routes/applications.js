@@ -5,8 +5,17 @@ const { body, validationResult } = require('express-validator');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { sendJobAssignedEmail } = require('../utils/email');
+const { getAge } = require('../utils/ageCheck');
 
 const router = express.Router();
+
+// Categories that require the student to be 18+
+const RESTRICTED_18_PLUS = [
+  'Babysitting & Childcare',
+  'Heavy Moving & Hauling',
+  'Event Staffing',
+  'Furniture Assembly',
+];
 
 // ── POST /api/applications — logged-in student applies ──────
 router.post('/', requireAuth, [
@@ -24,6 +33,16 @@ router.post('/', requireAuth, [
     'SELECT id FROM applications WHERE job_id = ? AND student_id = ?'
   ).get(job_id, req.user.id);
   if (existing) return res.status(409).json({ error: 'You already applied to this task.' });
+
+  // 18+ check for restricted categories (production only)
+  if (process.env.NODE_ENV === 'production' && RESTRICTED_18_PLUS.includes(job.category)) {
+    const student = db.prepare('SELECT dob FROM users WHERE id = ?').get(req.user.id);
+    if (!student || getAge(student.dob) < 18) {
+      return res.status(400).json({
+        error: 'You must be 18 or older to apply for this type of job.',
+      });
+    }
+  }
 
   const id = uuidv4();
   db.prepare('INSERT INTO applications (id, job_id, student_id, message) VALUES (?, ?, ?, ?)')

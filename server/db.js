@@ -86,4 +86,23 @@ db.exec(`
   );
 `);
 
+// ── Schema migrations — add new columns via try/catch (SQLite has no IF NOT EXISTS for ALTER) ──
+// New job status flow: open → assigned → pending_payment → active → pending_review → completed
+// (CHECK constraint on status column cannot be altered in SQLite; new statuses work at app level)
+const alterStatements = [
+  "ALTER TABLE jobs ADD COLUMN duration_estimate TEXT",
+  "ALTER TABLE jobs ADD COLUMN has_pets INTEGER DEFAULT 0",
+  "ALTER TABLE jobs ADD COLUMN has_stairs INTEGER DEFAULT 0",
+  "ALTER TABLE jobs ADD COLUMN heavy_lifting INTEGER DEFAULT 0",
+  "ALTER TABLE jobs ADD COLUMN photo_url TEXT",
+];
+
+for (const stmt of alterStatements) {
+  try {
+    db.exec(stmt);
+  } catch (_) {
+    // Column already exists — safe to ignore
+  }
+}
+
 module.exports = db;

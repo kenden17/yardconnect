@@ -66,11 +66,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!/[A-Z]/.test(pw))   { showError('Password must contain at least one uppercase letter.'); return; }
     if (!/[0-9]/.test(pw))   { showError('Password must contain at least one number.'); return; }
 
+    const agreedToGuidelines = document.getElementById('agreeGuidelines')?.checked;
+    if (!agreedToGuidelines) { showError('You must agree to the Community Guidelines.'); return; }
+
     submitBtn.disabled    = true;
     submitBtn.textContent = 'Creating account…';
 
     try {
-      const { token, user } = await API.register(name, email, pw, dob);
+      const { token, user } = await API.register(name, email, pw, dob, true);
       try {
         Auth.setSession(token, user);
       } catch (storageErr) {
