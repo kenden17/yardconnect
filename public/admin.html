@@ -8,35 +8,37 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/main.css" />
   <style>
+    body { background: var(--bg-alt); }
     .admin-wrap { max-width: 1200px; margin: 0 auto; padding: 100px var(--pad-x) 60px; }
     .admin-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:16px; }
-    .admin-title { font-family:var(--font-display); font-size:clamp(2rem,5vw,3.5rem); }
+    .admin-title { font-family:var(--font-display); font-size:clamp(2rem,5vw,3.5rem); color:var(--text); }
     .admin-title span { color:var(--accent); }
     .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:40px; }
-    .stat-card { background:var(--mid); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+    .stat-card { background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow); }
     .stat-card__num { font-family:var(--font-display); font-size:2.4rem; color:var(--accent); line-height:1; }
     .stat-card__label { font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin-top:4px; }
-    .tab-bar { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); }
+    .tab-bar { display:flex; gap:4px; margin-bottom:24px; border-bottom:1.5px solid var(--border); }
     .tab-btn { padding:10px 20px; font-size:.85rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-               color:var(--dim); border-bottom:3px solid transparent; transition:all .2s; margin-bottom:-1px; }
+               color:var(--dim); border-bottom:3px solid transparent; transition:all .2s; margin-bottom:-2px; background:none; }
     .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
-    .tab-btn:hover { color:var(--white); }
+    .tab-btn:hover { color:var(--text); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
     .admin-table { width:100%; border-collapse:collapse; font-size:.88rem; }
     .admin-table th { text-align:left; padding:10px 12px; font-size:.72rem; font-weight:700; letter-spacing:.1em;
-                      text-transform:uppercase; color:var(--dim); border-bottom:1px solid var(--border); }
-    .admin-table td { padding:12px; border-bottom:1px solid rgba(255,255,255,.05); color:var(--white); vertical-align:middle; }
-    .admin-table tr:hover td { background:rgba(255,255,255,.02); }
+                      text-transform:uppercase; color:var(--dim); border-bottom:1.5px solid var(--border); background:var(--bg-alt); }
+    .admin-table td { padding:12px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }
+    .admin-table tr:hover td { background:var(--accent-l); }
     .table-wrap { overflow-x:auto; background:var(--mid); border:1px solid var(--border); border-radius:var(--radius); }
-    .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.7rem; font-weight:700; text-transform:uppercase; }
-    .badge-open      { background:rgba(34,197,94,.15);  color:#86efac; }
-    .badge-assigned  { background:rgba(59,130,246,.15); color:#93c5fd; }
-    .badge-completed { background:rgba(245,158,11,.15); color:#fcd34d; }
-    .badge-cancelled { background:rgba(239,68,68,.15);  color:#fca5a5; }
+    .table-wrap { overflow-x:auto; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); }
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.7rem; font-weight:700; text-transform:uppercase; border:1px solid; }
+    .badge-open      { background:var(--success-l); color:var(--success); border-color:#bbf7d0; }
+    .badge-assigned  { background:var(--blue-l);    color:var(--blue);    border-color:#bfdbfe; }
+    .badge-completed { background:var(--warn-l);    color:var(--warn);    border-color:#fde68a; }
+    .badge-cancelled { background:var(--danger-l);  color:var(--danger);  border-color:#fecaca; }
   </style>
 </head>
-<body style="background:var(--black)">
+<body>
   <header class="nav">
     <a href="/" class="nav__logo">Campus<span>Hands</span></a>
     <span style="font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)">Admin Panel</span>
@@ -134,8 +136,8 @@
       document.getElementById('usersBody').innerHTML = users.length ? users.map(u => `
         <tr>
           <td><strong>${escHtml(u.name)}</strong></td>
-          <td style="color:var(--dim)">${escHtml(u.email)}</td>
-          <td style="color:#fcd34d">${u.avg_rating ? '★ ' + u.avg_rating + ' (' + u.rating_count + ')' : '—'}</td>
+          <td style="color:var(--text-mid)">${escHtml(u.email)}</td>
+          <td style="color:#d97706">${u.avg_rating ? '★ ' + u.avg_rating + ' (' + u.rating_count + ')' : '—'}</td>
           <td>${u.app_count}</td>
           <td>${u.jobs_completed}</td>
           <td style="color:var(--dim)">${fmt(u.created_at)}</td>
@@ -160,19 +162,19 @@
       document.getElementById('tasksBody').innerHTML = tasks.length ? tasks.map(t => `
         <tr>
           <td><strong>${escHtml(t.title)}</strong></td>
-          <td style="color:var(--dim)">${escHtml(t.category)}</td>
-          <td style="color:var(--accent)">$${Number(t.pay).toFixed(2)}</td>
-          <td style="color:var(--dim)">${escHtml(t.city)}, ${escHtml(t.state)}</td>
+          <td style="color:var(--text-mid)">${escHtml(t.category)}</td>
+          <td style="color:var(--accent);font-weight:700">$${Number(t.pay).toFixed(2)}</td>
+          <td style="color:var(--text-mid)">${escHtml(t.city)}, ${escHtml(t.state)}</td>
           <td><span class="badge badge-${t.status}">${t.status}</span></td>
           <td>
             <strong>${escHtml(t.poster_name)}</strong><br/>
-            <span style="font-size:.75rem;color:var(--dim)">${escHtml(t.poster_email)}</span><br/>
+            <span style="font-size:.75rem;color:var(--text-mid)">${escHtml(t.poster_email)}</span><br/>
             <span style="font-size:.75rem;color:var(--dim)">${escHtml(t.poster_phone||'')}</span>
           </td>
-          <td style="font-size:.78rem;color:var(--dim)">
+          <td style="font-size:.78rem;color:var(--text-mid)">
             ${escHtml(t.poster_id_type||'')}<br/>${escHtml(t.poster_id_num||'')}<br/>
             DOB: ${escHtml(t.poster_dob||'')}<br/>${escHtml(t.poster_address||'')}
-            ${t.poster_id_photo ? `<br/><a href="/uploads/ids/${escHtml(t.poster_id_photo)}?key=${KEY}" target="_blank" style="color:var(--accent)">View ID Photo ↗</a>` : '<br/><span style="color:#fca5a5">No photo</span>'}
+            ${t.poster_id_photo ? `<br/><a href="/uploads/ids/${escHtml(t.poster_id_photo)}?key=${KEY}" target="_blank" style="color:var(--accent)">View ID Photo ↗</a>` : '<br/><span style="color:var(--danger)">No photo</span>'}
           </td>
           <td>${t.app_count}</td>
           <td style="color:var(--dim)">${fmt(t.created_at)}</td>
@@ -198,9 +200,9 @@
         <tr>
           <td><strong>${escHtml(r.job_title)}</strong></td>
           <td>${escHtml(r.student_name)}</td>
-          <td style="color:var(--dim)">${r.rated_by === 'poster' ? '👤 Poster' : '🎓 Student'}</td>
-          <td style="color:#fcd34d">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</td>
-          <td style="color:var(--dim);font-size:.85rem">${escHtml(r.comment||'—')}</td>
+          <td style="color:var(--text-mid)">${r.rated_by === 'poster' ? '👤 Poster' : '🎓 Student'}</td>
+          <td style="color:#d97706">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</td>
+          <td style="color:var(--text-mid);font-size:.85rem">${escHtml(r.comment||'—')}</td>
           <td style="color:var(--dim)">${fmt(r.created_at)}</td>
         </tr>`).join('') : '<tr><td colspan="6" class="empty-state">No ratings yet.</td></tr>';
     }

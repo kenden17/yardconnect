@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await API.apply(jobId, message.trim());
       btn.textContent = '✓ Applied';
       btn.classList.remove('btn--accent');
+      btn.classList.add('btn--outline');
       btn.style.color = 'var(--accent)';
     } catch (err) {
       alert(err.message);

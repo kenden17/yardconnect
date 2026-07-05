@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="modal__box" style="max-width:440px">
         <button class="modal__close" id="ratingClose">✕</button>
         <h2 class="modal__title">Rate this Task</h2>
-        <p style="color:var(--dim);margin-bottom:20px;font-size:.9rem">${escHtml(jobTitle)}</p>
+        <p style="color:var(--text-mid);margin-bottom:20px;font-size:.9rem">${escHtml(jobTitle)}</p>
         <div class="star-picker" id="starPicker" role="group" aria-label="Star rating">
           ${[1,2,3,4,5].map(n => `
             <button type="button" class="star-btn" data-val="${n}" aria-label="${n} star${n>1?'s':''}">★</button>
@@ -228,35 +228,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
               <div class="job-card__pay">$${parseFloat(j.pay).toFixed(2)}</div>
               ${statusBadge(j.status)}
-              <span class="job-card__status" style="background:rgba(59,130,246,.15);color:#93c5fd">
+              <span class="job-card__status" style="background:var(--blue-l);color:var(--blue);border:1px solid #bfdbfe">
                 App: ${j.application_status}
               </span>
             </div>
           </div>
 
           ${j.application_status === 'accepted' && j.status === 'assigned' ? `
-            <div style="margin-top:10px;padding:10px;background:rgba(34,197,94,.08);
-                 border:1px solid rgba(34,197,94,.2);border-radius:4px;font-size:.85rem">
+            <div style="margin-top:10px;padding:10px;background:var(--success-l);
+                 border:1px solid #bbf7d0;border-radius:4px;font-size:.85rem;color:var(--success)">
               ✅ You've been accepted! The poster will contact you to coordinate.
-              ${j.address ? `<br/><span style="color:var(--dim)">📍 ${escHtml(j.address)}</span>` : ''}
+              ${j.address ? `<br/><span style="color:var(--text-mid)">📍 ${escHtml(j.address)}</span>` : ''}
             </div>` : ''}
 
           ${j.status === 'pending_payment' ? `
-            <div style="margin-top:10px;padding:10px;background:rgba(245,158,11,.08);
-                 border:1px solid rgba(245,158,11,.2);border-radius:4px;font-size:.85rem">
+            <div style="margin-top:10px;padding:10px;background:var(--warn-l);
+                 border:1px solid #fde68a;border-radius:4px;font-size:.85rem;color:var(--warn)">
               ⏳ The poster is processing payment. Work begins once payment is confirmed.
             </div>` : ''}
 
           ${j.status === 'active' ? `
-            <div style="margin-top:10px;padding:10px;background:rgba(59,130,246,.08);
-                 border:1px solid rgba(59,130,246,.2);border-radius:4px;font-size:.85rem">
+            <div style="margin-top:10px;padding:10px;background:var(--blue-l);
+                 border:1px solid #bfdbfe;border-radius:4px;font-size:.85rem;color:#1d4ed8">
               🚀 Work is in progress! Complete the task, then the poster will release payment.
               ${j.address ? `<br/><span style="color:var(--dim)">📍 ${escHtml(j.address)}</span>` : ''}
             </div>` : ''}
 
           ${j.status === 'pending_review' && !j.student_rated_poster ? `
             <div style="margin-top:12px">
-              <p style="font-size:.85rem;color:var(--dim);margin-bottom:8px">
+              <p style="font-size:.85rem;color:var(--text-mid);margin-bottom:8px">
                 🎉 Task complete! Leave a rating for the poster.
               </p>
               <button class="btn btn--accent btn--sm rate-btn" data-id="${j.id}" data-title="${escHtml(j.title)}">
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>` : ''}
 
           ${j.status === 'completed' ? `
-            <div style="margin-top:8px;font-size:.82rem;color:var(--dim)">
+            <div style="margin-top:8px;font-size:.82rem;color:var(--text-mid)">
               ✅ Completed on ${fmtDate(j.created_at)}
             </div>` : ''}
         </div>`).join('');
