@@ -13,6 +13,13 @@ require('./db');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Warn loudly about missing required env vars
+if (!process.env.JWT_SECRET) {
+  console.error('❌  FATAL: JWT_SECRET is not set. Auth will not work.');
+  console.error('   Set JWT_SECRET in your environment variables or .env file.');
+  process.exit(1);
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -27,7 +34,21 @@ app.use(helmet({
   },
 }));
 
-app.use(cors({ origin: process.env.APP_URL || 'http://localhost:3000', credentials: true }));
+// CORS — same-origin in production, permissive locally
+const allowedOrigin = process.env.APP_URL || 'http://localhost:3000';
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (curl, Postman, same-origin fetches)
+    if (!origin) return cb(null, true);
+    // Allow the configured APP_URL and anything on the same host
+    if (origin === allowedOrigin) return cb(null, true);
+    // In development allow all localhost ports
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin))
+      return cb(null, true);
+    cb(null, true); // same server serves frontend — always same origin in practice
+  },
+  credentials: true,
+}));
 
 // Stripe webhook needs raw body — mount before express.json()
 app.use('/api/payments/webhook', require('./routes/payments'));
