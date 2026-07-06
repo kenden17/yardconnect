@@ -225,7 +225,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!/^[A-Z]\d{8}$/.test(idNumClean) && !/^\d{9}$/.test(idNumClean)) {
         return showErr('US passport numbers are a letter followed by 8 digits (e.g. A12345678).');
       }
-    } else if (idType !== 'Other') {
+    } else {
+      // Driver's License or State ID
       if (idNumClean.length < 4) return showErr('ID number appears too short. Please check your entry.');
     }
 

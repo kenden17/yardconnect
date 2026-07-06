@@ -100,13 +100,17 @@ router.patch('/:id/accept', [
   db.prepare("UPDATE applications SET status = 'accepted' WHERE id = ?").run(app.id);
   db.prepare("UPDATE applications SET status = 'rejected' WHERE job_id = ? AND id != ?")
     .run(app.job_id, app.id);
+  // assigned → poster will pay next to move to pending_payment → active
   db.prepare("UPDATE jobs SET status = 'assigned', student_id = ? WHERE id = ?")
     .run(app.student_id, app.job_id);
 
   sendJobAssignedEmail(app.poster_email, app.poster_name, student.name, app.job_title)
     .catch(console.error);
 
-  return res.json({ message: `${student.name} has been assigned. They'll reach out soon.` });
+  return res.json({
+    message: `${student.name} has been accepted! Complete the payment below to get work started.`,
+    student_name: student.name,
+  });
 });
 
 // ── PATCH /api/applications/:id/reject ─────────────────────

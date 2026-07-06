@@ -44,8 +44,8 @@ router.post('/create-intent', requireStripe, [
   if (job.poster_email !== poster_email) {
     return res.status(403).json({ error: 'Email does not match this task.' });
   }
-  if (job.status !== 'pending_payment') {
-    return res.status(400).json({ error: 'Task must be in pending_payment status before payment.' });
+  if (!['assigned', 'pending_payment'].includes(job.status)) {
+    return res.status(400).json({ error: 'Task must be assigned before payment.' });
   }
 
   const existingTx = db.prepare("SELECT id FROM transactions WHERE job_id = ? AND status = 'paid'").get(job_id);
@@ -78,6 +78,10 @@ router.post('/create-intent', requireStripe, [
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(txId, job_id, job.student_id, job.pay,
            job.pay * PLATFORM_FEE, job.pay * (1 - PLATFORM_FEE), intent.id);
+
+    // Mark job as pending_payment if not already
+    db.prepare("UPDATE jobs SET status = 'pending_payment' WHERE id = ? AND status = 'assigned'")
+      .run(job_id);
 
     return res.json({
       clientSecret:   intent.client_secret,
@@ -118,7 +122,7 @@ router.post('/confirm', requireStripe, [
     }
 
     db.prepare("UPDATE transactions SET status = 'paid' WHERE id = ?").run(tx.id);
-    db.prepare("UPDATE jobs SET status = 'active', completed_at = datetime('now') WHERE id = ?").run(tx.job_id);
+    db.prepare("UPDATE jobs SET status = 'active' WHERE id = ?").run(tx.job_id);
 
     return res.json({ message: 'Payment confirmed. Work can now begin!' });
   } catch (err) {
@@ -142,7 +146,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
   if (event.type === 'payment_intent.succeeded') {
     const id = event.data.object.id;
     db.prepare("UPDATE transactions SET status = 'paid' WHERE stripe_payment_intent = ?").run(id);
-    db.prepare(`UPDATE jobs SET status = 'active', completed_at = datetime('now')
+    db.prepare(`UPDATE jobs SET status = 'active'
                 WHERE id = (SELECT job_id FROM transactions WHERE stripe_payment_intent = ?)`).run(id);
   }
   if (event.type === 'payment_intent.payment_failed') {

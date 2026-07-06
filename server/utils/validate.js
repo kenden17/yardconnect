@@ -184,7 +184,7 @@ function validateIdNumber(idType, idNum, state) {
     return { valid: false, error: `ID number format doesn't match a ${st} ${idType}. Please double-check your entry.` };
   }
 
-  // 'Other' — just require non-empty, at least 4 chars
+  // Unrecognized type — require at least 4 chars
   if (num.length < 4) return { valid: false, error: 'ID number must be at least 4 characters.' };
   return { valid: true };
 }

@@ -25,7 +25,6 @@ const CATEGORIES = [
   'Grocery & Shopping',
   'Snow & Ice',
   'Babysitting & Childcare',
-  'Other',
 ];
 
 // Prohibited keywords — checked on job title + description (case-insensitive)
@@ -155,7 +154,7 @@ router.post('/', (req, res, next) => {
     if (!poster_dob?.trim()) errors.push('Date of birth is required.');
 
     // ── ID type ────────────────────────────────────────────
-    const validIdTypes = ["Driver's License", 'State ID', 'Passport', 'Other'];
+    const validIdTypes = ["Driver's License", 'State ID', 'Passport'];
     if (!validIdTypes.includes(poster_id_type)) errors.push('Government ID type is required.');
 
     // ── ID number — format check by type and state ─────────
@@ -291,6 +290,8 @@ router.post('/', (req, res, next) => {
 });
 
 // ── POST /api/jobs/:id/mark-complete ────────────────────────
+// Now just sets status to pending_payment so payment can be taken.
+// Called automatically after student is accepted — not a separate poster action.
 router.post('/:id/mark-complete', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
 ], (req, res) => {
@@ -302,14 +303,14 @@ router.post('/:id/mark-complete', [
   if (job.poster_email !== req.body.poster_email) {
     return res.status(403).json({ error: 'Email does not match this task.' });
   }
-  if (job.status !== 'assigned') {
-    return res.status(400).json({ error: 'Task must be assigned before marking complete.' });
+  if (!['assigned', 'pending_payment'].includes(job.status)) {
+    return res.status(400).json({ error: 'Task must be assigned before payment.' });
   }
 
-  db.prepare("UPDATE jobs SET status = 'pending_payment', completed_at = datetime('now') WHERE id = ?")
+  db.prepare("UPDATE jobs SET status = 'pending_payment' WHERE id = ?")
     .run(req.params.id);
 
-  return res.json({ message: 'Task marked complete. You can now pay the student to begin work review.' });
+  return res.json({ message: 'Ready for payment.' });
 });
 
 // ── POST /api/jobs/:id/release ───────────────────────────────
@@ -329,7 +330,7 @@ router.post('/:id/release', [
     return res.status(400).json({ error: 'Task must be active before releasing payment.' });
   }
 
-  db.prepare("UPDATE jobs SET status = 'pending_review' WHERE id = ?").run(req.params.id);
+  db.prepare("UPDATE jobs SET status = 'pending_review', completed_at = datetime('now') WHERE id = ?").run(req.params.id);
   return res.json({ message: 'Payment released. Both parties can now leave a rating.' });
 });
 
