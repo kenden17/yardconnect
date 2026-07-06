@@ -169,37 +169,115 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     postErrorEl.classList.add('hidden');
     postSuccessEl.classList.add('hidden');
+
+    // ── Client-side validation ─────────────────────────────
+    const name    = document.getElementById('posterName').value.trim();
+    const email   = document.getElementById('posterEmail').value.trim();
+    const phone   = document.getElementById('posterPhone').value.trim();
+    const address = document.getElementById('posterAddress').value.trim();
+    const dob     = document.getElementById('posterDob').value;
+    const idType  = document.getElementById('posterIdType').value;
+    const idNum   = document.getElementById('posterIdNum').value.trim();
+    const title   = document.getElementById('taskTitle').value.trim();
+    const desc    = document.getElementById('taskDesc').value.trim();
+    const cat     = document.getElementById('taskCategory').value;
+    const pay     = parseFloat(document.getElementById('taskPay').value);
+    const tAddr   = document.getElementById('taskAddress').value.trim();
+    const city    = document.getElementById('taskCity').value.trim();
+    const state   = document.getElementById('taskState').value.trim().toUpperCase();
+    const zip     = document.getElementById('taskZip').value.trim();
+    const agreed  = document.getElementById('posterAgreed').checked;
+    const agreedG = document.getElementById('posterAgreedGuidelines')?.checked;
+    const photo   = document.getElementById('posterIdPhoto').files[0];
+
+    function showErr(msg) {
+      postErrorEl.textContent = msg;
+      postErrorEl.classList.remove('hidden');
+      postErrorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Name: at least 2 words, letters only
+    const nameWords = name.split(/\s+/).filter(Boolean);
+    if (!name) return showErr('Full legal name is required.');
+    if (nameWords.length < 2) return showErr('Please enter your full legal name (first and last).');
+    if (!/^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(name)) return showErr('Name should contain only letters.');
+
+    // Email
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Valid email address is required.');
+    const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','me.com','aol.com','protonmail.com','live.com'];
+    // Note: we don't block free domains for posters — they just need a real email
+
+    // Phone: 10 digits
+    const phoneDigits = phone.replace(/\D/g, '');
+    const phoneNorm = phoneDigits.startsWith('1') && phoneDigits.length === 11 ? phoneDigits.slice(1) : phoneDigits;
+    if (!phone) return showErr('Phone number is required.');
+    if (phoneNorm.length !== 10) return showErr('Phone number must be 10 digits (e.g. 555-867-5309).');
+    if (parseInt(phoneNorm.slice(0,3)) < 200) return showErr('Phone number has an invalid area code.');
+
+    if (!address) return showErr('Your home address is required.');
+    if (!dob) return showErr('Date of birth is required.');
+    if (!idType) return showErr('Government ID type is required.');
+
+    // ID number format
+    const idNumClean = idNum.toUpperCase().replace(/[-\s]/g, '');
+    if (!idNumClean) return showErr('Government ID number is required.');
+    if (idType === 'Passport') {
+      if (!/^[A-Z]\d{8}$/.test(idNumClean) && !/^\d{9}$/.test(idNumClean)) {
+        return showErr('US passport numbers are a letter followed by 8 digits (e.g. A12345678).');
+      }
+    } else if (idType !== 'Other') {
+      if (idNumClean.length < 4) return showErr('ID number appears too short. Please check your entry.');
+    }
+
+    if (!photo) return showErr('A photo of your government ID is required.');
+    const allowedTypes = ['image/jpeg','image/png','image/webp','image/heic','application/pdf'];
+    if (!allowedTypes.includes(photo.type) && !photo.name.match(/\.(jpg|jpeg|png|webp|heic|pdf)$/i)) {
+      return showErr('ID photo must be a JPG, PNG, WEBP, HEIC, or PDF file.');
+    }
+    if (photo.size > 10 * 1024 * 1024) return showErr('ID photo must be under 10MB.');
+
+    if (!agreed) return showErr('You must agree to the Terms of Responsibility.');
+    if (!agreedG) return showErr('You must agree to the Community Guidelines.');
+
+    if (!title || title.length < 5) return showErr('Task title must be at least 5 characters.');
+    if (title.length > 100) return showErr('Task title must be 100 characters or less.');
+    if (!desc || desc.length < 20) return showErr('Description must be at least 20 characters.');
+    if (!cat) return showErr('Please select a category.');
+    if (isNaN(pay) || pay < 5 || pay > 2000) return showErr('Pay must be between $5 and $2,000.');
+    if (!tAddr || tAddr.length < 5) return showErr('Task street address is required.');
+    if (!city || city.length < 2) return showErr('City is required.');
+    if (!state || state.length !== 2 || !/^[A-Z]{2}$/.test(state)) return showErr('Enter a valid 2-letter state abbreviation (e.g. TX).');
+    if (!/^\d{5}$/.test(zip)) return showErr('ZIP code must be exactly 5 digits.');
+
     postBtn.disabled    = true;
     postBtn.textContent = 'Posting…';
 
     // Build FormData for multipart upload (ID photo)
     const formData = new FormData();
-    formData.append('poster_name',    document.getElementById('posterName').value.trim());
-    formData.append('poster_email',   document.getElementById('posterEmail').value.trim());
-    formData.append('poster_phone',   document.getElementById('posterPhone').value.trim());
-    formData.append('poster_address', document.getElementById('posterAddress').value.trim());
-    formData.append('poster_dob',     document.getElementById('posterDob').value.trim());
-    formData.append('poster_id_type', document.getElementById('posterIdType').value);
-    formData.append('poster_id_num',  document.getElementById('posterIdNum').value.trim());
-    formData.append('poster_agreed',  String(document.getElementById('posterAgreed').checked));
-    formData.append('poster_agreed_guidelines', String(document.getElementById('posterAgreedGuidelines')?.checked || false));
-    formData.append('title',          document.getElementById('taskTitle').value.trim());
-    formData.append('category',       document.getElementById('taskCategory').value);
-    formData.append('description',    document.getElementById('taskDesc').value.trim());
-    formData.append('pay',            document.getElementById('taskPay').value);
+    formData.append('poster_name',    name);
+    formData.append('poster_email',   email);
+    formData.append('poster_phone',   phone);
+    formData.append('poster_address', address);
+    formData.append('poster_dob',     dob);
+    formData.append('poster_id_type', idType);
+    formData.append('poster_id_num',  idNum);
+    formData.append('poster_agreed',  String(agreed));
+    formData.append('poster_agreed_guidelines', String(agreedG || false));
+    formData.append('title',          title);
+    formData.append('category',       cat);
+    formData.append('description',    desc);
+    formData.append('pay',            String(pay));
     formData.append('duration_estimate', document.getElementById('taskDuration')?.value.trim() || '');
     formData.append('has_pets',       String(document.getElementById('hasPets')?.checked || false));
     formData.append('has_stairs',     String(document.getElementById('hasStairs')?.checked || false));
     formData.append('heavy_lifting',  String(document.getElementById('heavyLifting')?.checked || false));
-    formData.append('address',        document.getElementById('taskAddress').value.trim());
-    formData.append('city',           document.getElementById('taskCity').value.trim());
-    formData.append('state',          document.getElementById('taskState').value.trim());
-    formData.append('zip',            document.getElementById('taskZip').value.trim());
+    formData.append('address',        tAddr);
+    formData.append('city',           city);
+    formData.append('state',          state);
+    formData.append('zip',            zip);
+    formData.append('poster_id_photo', photo);
 
-    const idPhotoFile = document.getElementById('posterIdPhoto').files[0];
-    if (idPhotoFile) formData.append('poster_id_photo', idPhotoFile);
-
-    const posterEmail = document.getElementById('posterEmail').value.trim();
+    const posterEmail = email;
 
     try {
       // Use raw fetch for multipart — don't set Content-Type header (browser sets boundary)

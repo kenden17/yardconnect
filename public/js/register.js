@@ -29,10 +29,27 @@ document.addEventListener('DOMContentLoaded', () => {
   emailInput.addEventListener('input', () => {
     const val = emailInput.value.toLowerCase();
     if (!val.includes('@')) { emailHint.textContent = ''; return; }
-    const good = ['.k12.', '.edu', 'student', 'stu.', 'isd.', 'school', 'academy', 'hs.'];
-    const ok   = good.some(p => val.includes(p));
-    emailHint.textContent = ok ? '✅ Looks like a school email' : '⚠️ Must be a school or k12 email';
-    emailHint.style.color = ok ? '#86efac' : '#fcd34d';
+
+    const domain = val.split('@')[1] || '';
+    const blocked = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
+                     'me.com','aol.com','protonmail.com','proton.me','live.com','msn.com'];
+
+    if (blocked.includes(domain)) {
+      emailHint.textContent = '❌ Personal emails are not accepted. Use your school email.';
+      emailHint.style.color = '#ef4444';
+      return;
+    }
+
+    const good = ['.k12.', '.edu', 'student', 'stu.', 'isd.', 'cusd.', 'usd.',
+                  'school', 'academy', 'hs.', 'college.', 'university.'];
+    const ok = good.some(p => val.includes(p));
+    if (ok) {
+      emailHint.textContent = '✅ Looks like a school email';
+      emailHint.style.color = '#16a34a';
+    } else {
+      emailHint.textContent = '⚠️ Must be a school, k12, or .edu email address';
+      emailHint.style.color = '#d97706';
+    }
   });
 
   // Password strength

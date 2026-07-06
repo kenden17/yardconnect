@@ -8,6 +8,7 @@ const db       = require('../db');
 const { requireAuth }       = require('../middleware/auth');
 const { uploadIdPhoto }     = require('../utils/upload');
 const { isPosterOldEnough } = require('../utils/ageCheck');
+const { validateZipState, validatePhone, validateIdNumber, validateEmailDomain, validateFullName } = require('../utils/validate');
 
 const router = express.Router();
 
@@ -119,12 +120,11 @@ router.get('/:id', (req, res) => {
 // ── POST /api/jobs — multipart form, ID photo upload ────────
 // Uses multer to handle file, then validates all text fields manually.
 router.post('/', (req, res, next) => {
-  uploadIdPhoto(req, res, (uploadErr) => {
+  uploadIdPhoto(req, res, async (uploadErr) => {
     if (uploadErr) {
       return res.status(400).json({ error: uploadErr.message });
     }
 
-    // Validate required text fields
     const {
       poster_name, poster_email, poster_phone, poster_address, poster_dob,
       poster_id_type, poster_id_num, poster_agreed, poster_agreed_guidelines,
@@ -133,36 +133,86 @@ router.post('/', (req, res, next) => {
     } = req.body;
 
     const errors = [];
-    if (!poster_name?.trim())    errors.push('Full legal name is required.');
-    if (!poster_email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(poster_email))
-                                  errors.push('Valid email is required.');
-    if (!poster_phone?.trim())   errors.push('Phone number is required.');
-    if (!poster_address?.trim()) errors.push('Your home address is required.');
-    if (!poster_dob?.trim())     errors.push('Date of birth is required.');
-    if (!['Driver\'s License','State ID','Passport','Other'].includes(poster_id_type))
-                                  errors.push('Government ID type is required.');
-    if (!poster_id_num?.trim())  errors.push('Government ID number is required.');
-    if (!req.file)               errors.push('A photo of your government ID is required.');
-    if (poster_agreed !== 'true') errors.push('You must agree to the terms of responsibility.');
 
-    // Community guidelines check (production only)
+    // ── Full name ──────────────────────────────────────────
+    const nameCheck = validateFullName(poster_name);
+    if (!nameCheck.valid) errors.push(nameCheck.error);
+
+    // ── Email format ───────────────────────────────────────
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!poster_email?.trim() || !emailRe.test(poster_email)) {
+      errors.push('Valid email address is required.');
+    }
+
+    // ── Phone ──────────────────────────────────────────────
+    const phoneCheck = validatePhone(poster_phone);
+    if (!phoneCheck.valid) errors.push(phoneCheck.error);
+
+    // ── Address ────────────────────────────────────────────
+    if (!poster_address?.trim()) errors.push('Your home address is required.');
+
+    // ── DOB ────────────────────────────────────────────────
+    if (!poster_dob?.trim()) errors.push('Date of birth is required.');
+
+    // ── ID type ────────────────────────────────────────────
+    const validIdTypes = ["Driver's License", 'State ID', 'Passport', 'Other'];
+    if (!validIdTypes.includes(poster_id_type)) errors.push('Government ID type is required.');
+
+    // ── ID number — format check by type and state ─────────
+    if (validIdTypes.includes(poster_id_type)) {
+      const idState = (poster_id_type === "Driver's License" || poster_id_type === 'State ID')
+        ? (state || '').toUpperCase().trim()
+        : null;
+      const idCheck = validateIdNumber(poster_id_type, poster_id_num, idState);
+      if (!idCheck.valid) errors.push(idCheck.error);
+    }
+
+    // ── ID photo ───────────────────────────────────────────
+    if (!req.file) errors.push('A photo of your government ID is required.');
+
+    // ── Agreements ─────────────────────────────────────────
+    if (poster_agreed !== 'true') errors.push('You must agree to the terms of responsibility.');
     if (process.env.NODE_ENV === 'production') {
       if (!poster_agreed_guidelines || poster_agreed_guidelines === 'false') {
         errors.push('You must agree to the Community Guidelines.');
       }
     }
 
-    if (!title?.trim() || title.length > 100) errors.push('Title required (max 100 chars).');
-    if (!description?.trim())    errors.push('Description is required.');
-    if (!CATEGORIES.includes(category)) errors.push('Select a valid category.');
-    const payNum = parseFloat(pay);
-    if (isNaN(payNum) || payNum < 5 || payNum > 2000) errors.push('Pay must be between $5 and $2000.');
-    if (!address?.trim())        errors.push('Task address required.');
-    if (!city?.trim())           errors.push('City required.');
-    if (!state?.trim() || state.length !== 2) errors.push('Two-letter state required.');
-    if (!/^\d{5}$/.test(zip))   errors.push('Valid 5-digit ZIP required.');
+    // ── Task title ─────────────────────────────────────────
+    if (!title?.trim() || title.trim().length < 5) errors.push('Title required (min 5 chars).');
+    if (title?.trim().length > 100) errors.push('Title must be 100 characters or less.');
 
-    // ── Prohibited keywords check ──────────────────────────
+    // ── Description ────────────────────────────────────────
+    if (!description?.trim() || description.trim().length < 20) {
+      errors.push('Description is required and must be at least 20 characters.');
+    }
+
+    // ── Category ───────────────────────────────────────────
+    if (!CATEGORIES.includes(category)) errors.push('Select a valid category.');
+
+    // ── Pay ────────────────────────────────────────────────
+    const payNum = parseFloat(pay);
+    if (isNaN(payNum) || payNum < 5 || payNum > 2000) errors.push('Pay must be between $5 and $2,000.');
+
+    // ── Task address ───────────────────────────────────────
+    if (!address?.trim() || address.trim().length < 5) errors.push('Task street address is required.');
+
+    // ── City ───────────────────────────────────────────────
+    if (!city?.trim() || city.trim().length < 2) errors.push('City is required.');
+    if (city && !/^[A-Za-z\s\-'.]+$/.test(city.trim())) errors.push('City name contains invalid characters.');
+
+    // ── State ──────────────────────────────────────────────
+    if (!state?.trim() || state.trim().length !== 2) errors.push('Two-letter state abbreviation is required (e.g. TX).');
+
+    // ── ZIP + state cross-validation ───────────────────────
+    if (/^\d{5}$/.test(zip) && state?.trim().length === 2) {
+      const zipCheck = validateZipState(zip, state);
+      if (!zipCheck.valid) errors.push(zipCheck.error);
+    } else if (!/^\d{5}$/.test(zip)) {
+      errors.push('ZIP code must be exactly 5 digits.');
+    }
+
+    // ── Prohibited keywords ────────────────────────────────
     if (title?.trim() || description?.trim()) {
       const combined = ((title || '') + ' ' + (description || '')).toLowerCase();
       const matched = PROHIBITED_KEYWORDS.find(kw => combined.includes(kw.toLowerCase()));
@@ -174,22 +224,29 @@ router.post('/', (req, res, next) => {
       }
     }
 
+    // Return first error if any basic validation failed
     if (errors.length) {
-      // Clean up uploaded file if validation fails
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
+      if (req.file) fs.unlink(req.file.path, () => {});
       return res.status(400).json({ error: errors[0] });
     }
 
     // ── Age check: poster must be 18+ ──────────────────────
     if (!isPosterOldEnough(poster_dob)) {
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
+      if (req.file) fs.unlink(req.file.path, () => {});
       return res.status(400).json({
         error: 'You must be 18 years of age or older to post a task on Campus Hands.',
       });
+    }
+
+    // ── Email domain MX check (async — runs after basic validation) ──
+    try {
+      const emailDomainCheck = await validateEmailDomain(poster_email.trim().toLowerCase());
+      if (!emailDomainCheck.valid) {
+        if (req.file) fs.unlink(req.file.path, () => {});
+        return res.status(400).json({ error: emailDomainCheck.error });
+      }
+    } catch {
+      // DNS lookup failure — allow through rather than block legitimate users
     }
 
     const id = uuidv4();
@@ -204,12 +261,14 @@ router.post('/', (req, res, next) => {
       id,
       poster_name.trim(),
       poster_email.trim().toLowerCase(),
-      poster_phone.trim(),
+      phoneCheck.normalized
+        ? `${phoneCheck.normalized.slice(0,3)}-${phoneCheck.normalized.slice(3,6)}-${phoneCheck.normalized.slice(6)}`
+        : poster_phone.trim(),
       poster_address.trim(),
       poster_dob.trim(),
       poster_id_type,
-      poster_id_num.trim(),
-      req.file.filename,  // stored filename only, not full path
+      poster_id_num.trim().toUpperCase().replace(/[-\s]/g, ''),
+      req.file.filename,
       title.trim(),
       description.trim(),
       category,

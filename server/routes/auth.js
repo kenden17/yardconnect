@@ -55,7 +55,7 @@ router.post('/register', [
   // Age check: must be 16–20
   if (!isStudentAgeValid(dob)) {
     return res.status(400).json({
-      error: 'Students must be between 16 and 20 years old to join Campus Hands.',
+      error: 'Students must be between 16 and 24 years old to join Campus Hands.',
     });
   }
 
