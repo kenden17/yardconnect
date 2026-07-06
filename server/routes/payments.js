@@ -9,12 +9,15 @@ require('dotenv').config();
 const router = express.Router();
 
 // Validate key format — must be a real key, not a placeholder
-const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
+const STRIPE_KEY = (process.env.STRIPE_SECRET_KEY || '').trim();
 const stripeKeyValid = /^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(STRIPE_KEY);
 
 let stripe = null;
 if (stripeKeyValid) {
   stripe = require('stripe')(STRIPE_KEY);
+  console.log('✅  Stripe initialized:', STRIPE_KEY.slice(0, 12) + '…');
+} else {
+  console.warn('⚠️   Stripe NOT initialized — STRIPE_SECRET_KEY is missing or invalid.');
 }
 
 const PLATFORM_FEE = 0.05;
@@ -96,12 +99,8 @@ router.post('/create-intent', requireStripe, [
       transactionId:  txId,
     });
   } catch (err) {
-    console.error('Stripe error:', err.message);
-    // Surface Stripe's actual message in development so it's easier to debug
-    const msg = process.env.NODE_ENV !== 'production' && err.message
-      ? err.message
-      : 'Payment failed to start. Try again.';
-    return res.status(500).json({ error: msg });
+    console.error('Stripe create-intent error:', err.message);
+    return res.status(500).json({ error: err.message || 'Payment failed to start. Try again.' });
   }
 });
 
@@ -134,11 +133,8 @@ router.post('/confirm', requireStripe, [
 
     return res.json({ message: 'Payment confirmed. Work can now begin!' });
   } catch (err) {
-    console.error('Confirm error:', err.message);
-    const msg = process.env.NODE_ENV !== 'production' && err.message
-      ? err.message
-      : 'Payment confirmation failed.';
-    return res.status(500).json({ error: msg });
+    console.error('Stripe confirm error:', err.message);
+    return res.status(500).json({ error: err.message || 'Payment confirmation failed.' });
   }
 });
 
