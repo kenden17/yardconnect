@@ -8,9 +8,13 @@ require('dotenv').config();
 
 const router = express.Router();
 
+// Validate key format — must be a real key, not a placeholder
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
+const stripeKeyValid = /^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(STRIPE_KEY);
+
 let stripe = null;
-if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
-  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+if (stripeKeyValid) {
+  stripe = require('stripe')(STRIPE_KEY);
 }
 
 const PLATFORM_FEE = 0.05;
@@ -93,7 +97,11 @@ router.post('/create-intent', requireStripe, [
     });
   } catch (err) {
     console.error('Stripe error:', err.message);
-    return res.status(500).json({ error: 'Payment failed to start. Try again.' });
+    // Surface Stripe's actual message in development so it's easier to debug
+    const msg = process.env.NODE_ENV !== 'production' && err.message
+      ? err.message
+      : 'Payment failed to start. Try again.';
+    return res.status(500).json({ error: msg });
   }
 });
 
@@ -127,7 +135,10 @@ router.post('/confirm', requireStripe, [
     return res.json({ message: 'Payment confirmed. Work can now begin!' });
   } catch (err) {
     console.error('Confirm error:', err.message);
-    return res.status(500).json({ error: 'Payment confirmation failed.' });
+    const msg = process.env.NODE_ENV !== 'production' && err.message
+      ? err.message
+      : 'Payment confirmation failed.';
+    return res.status(500).json({ error: msg });
   }
 });
 
