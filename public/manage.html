@@ -3,111 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manage Task — Campus Hands</title>
+  <title>Manage Tasks — Campus Hands</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/main.css" />
   <script src="https://js.stripe.com/v3/"></script>
   <style>
+    .job-pick-card {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 14px 16px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); background: var(--bg-alt);
+      cursor: pointer; transition: border-color .15s, background .15s;
+      margin-bottom: 8px;
+    }
+    .job-pick-card:hover { border-color: var(--accent); background: var(--bg); }
+    .job-pick-card__title { font-weight: 600; font-size: .95rem; color: var(--text); }
+    .job-pick-card__meta  { font-size: .8rem; color: var(--text-mid); margin-top: 2px; }
+    .job-pick-card__arrow { font-size: 1.2rem; color: var(--accent); flex-shrink: 0; }
     .payment-box {
       background: var(--bg-alt); border: 1.5px solid var(--border);
       border-radius: var(--radius-lg); padding: 24px; margin-top: 8px;
     }
-    .payment-box h3 {
-      font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: var(--text);
-    }
-    .payment-breakdown {
-      display: flex; flex-direction: column; gap: 6px;
-      margin: 16px 0; font-size: .9rem;
-    }
-    .payment-breakdown__row {
-      display: flex; justify-content: space-between;
-      color: var(--text-mid);
-    }
+    .payment-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .payment-breakdown { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; font-size: .9rem; }
+    .payment-breakdown__row { display: flex; justify-content: space-between; color: var(--text-mid); }
     .payment-breakdown__row--total {
       font-weight: 700; color: var(--text);
       border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;
     }
     #stripe-card-element {
       background: var(--bg); border: 1.5px solid var(--border);
-      border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;
-      transition: border-color .2s;
+      border-radius: var(--radius); padding: 14px 16px; margin: 16px 0; transition: border-color .2s;
     }
-    #stripe-card-element.StripeElement--focus { border-color: var(--accent); }
+    #stripe-card-element.StripeElement--focus  { border-color: var(--accent); }
     #stripe-card-element.StripeElement--invalid { border-color: var(--danger); }
-    #card-errors {
-      color: var(--danger); font-size: .85rem; margin-bottom: 12px; min-height: 20px;
-    }
-    .secure-badge {
-      display: flex; align-items: center; gap: 6px;
-      font-size: .75rem; color: var(--dim); margin-top: 10px;
-    }
+    #card-errors { color: var(--danger); font-size: .85rem; margin-bottom: 12px; min-height: 20px; }
+    .secure-badge { display: flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--dim); margin-top: 10px; }
     .step-indicator {
-      display: flex; gap: 0; margin-bottom: 28px; border-radius: var(--radius);
+      display: flex; margin-bottom: 28px; border-radius: var(--radius);
       overflow: hidden; border: 1px solid var(--border);
     }
     .step-indicator__step {
-      flex: 1; text-align: center; padding: 10px 8px; font-size: .78rem;
+      flex: 1; text-align: center; padding: 10px 6px; font-size: .75rem;
       font-weight: 600; background: var(--bg-alt); color: var(--dim);
       border-right: 1px solid var(--border);
     }
     .step-indicator__step:last-child { border-right: none; }
-    .step-indicator__step.done { background: #d1fae5; color: #065f46; }
+    .step-indicator__step.done   { background: #d1fae5; color: #065f46; }
     .step-indicator__step.active { background: var(--accent); color: #fff; }
+    .search-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .search-row input { flex: 1; }
   </style>
 </head>
 <body class="auth-page" style="justify-content:flex-start;padding-top:48px">
-
   <a href="/" class="auth-back">← Back to Campus Hands</a>
-
-  <main class="auth-wrap" style="max-width:620px;padding-top:40px">
+  <main class="auth-wrap" style="max-width:640px;padding-top:40px">
     <div class="auth-card" style="width:100%">
       <a href="/" class="auth-logo">Campus<span>Hands</span></a>
-      <h1 class="auth-title" id="manageTitle">Manage Task</h1>
+      <h1 class="auth-title" id="manageTitle">My Posted Tasks</h1>
 
-      <!-- Step indicator (hidden until task loaded) -->
-      <div class="step-indicator hidden" id="stepIndicator">
-        <div class="step-indicator__step" id="step1">1 · Pick Student</div>
-        <div class="step-indicator__step" id="step2">2 · Pay</div>
-        <div class="step-indicator__step" id="step3">3 · Work in Progress</div>
-        <div class="step-indicator__step" id="step4">4 · Done &amp; Rate</div>
-      </div>
-
-      <!-- Lookup form -->
-      <div id="lookupSection">
-        <p class="auth-sub">Enter your email and task ID to manage your posting.</p>
-        <form id="lookupForm" class="auth-form" novalidate>
+      <!-- Step 1: enter email -->
+      <div id="emailSection">
+        <p class="auth-sub">Enter the email you used when posting to see and manage all your tasks.</p>
+        <form id="emailForm" class="auth-form" novalidate>
           <div class="form-group">
             <label for="lookupEmail">Your Email</label>
             <input type="email" id="lookupEmail" placeholder="you@email.com" required autocomplete="email" />
           </div>
-          <div class="form-group">
-            <label for="lookupJobId">Task ID</label>
-            <input type="text" id="lookupJobId" placeholder="Paste your task ID here" required />
-            <span class="field-hint">Shown in the link you received when you posted the task.</span>
-          </div>
-          <div class="alert alert--error hidden" id="lookupError" role="alert"></div>
-          <button type="submit" class="btn btn--accent btn--full">Look Up Task →</button>
+          <div class="alert alert--error hidden" id="emailError" role="alert"></div>
+          <button type="submit" class="btn btn--accent btn--full">Find My Tasks →</button>
         </form>
       </div>
 
-      <!-- Task detail view (shown after lookup) -->
+      <!-- Step 2: pick a task from the list -->
+      <div id="jobListSection" class="hidden">
+        <button class="btn btn--outline btn--sm" id="backToEmailBtn" style="margin-bottom:16px">
+          ← Change Email
+        </button>
+        <p class="auth-sub" id="jobListSubtitle"></p>
+        <div class="search-row">
+          <input type="text" id="jobSearch" placeholder="Search by task name…" autocomplete="off" />
+          <button class="btn btn--accent btn--sm" id="jobSearchBtn">Search</button>
+        </div>
+        <div id="jobList"></div>
+      </div>
+
+      <!-- Step 3: task detail / management -->
       <div id="taskDetail" class="hidden">
+        <button class="btn btn--outline btn--sm" id="backToListBtn" style="margin-bottom:16px">
+          ← Back to My Tasks
+        </button>
+
+        <!-- Step indicator -->
+        <div class="step-indicator" id="stepIndicator">
+          <div class="step-indicator__step" id="step1">1 · Pick Student</div>
+          <div class="step-indicator__step" id="step2">2 · Pay</div>
+          <div class="step-indicator__step" id="step3">3 · In Progress</div>
+          <div class="step-indicator__step" id="step4">4 · Done &amp; Rate</div>
+        </div>
+
         <div id="taskInfo" style="margin-bottom:20px"></div>
 
-        <!-- Step 1 — Applicants list (open status) -->
+        <!-- Applicants -->
         <div id="applicantsSection" class="hidden">
           <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:12px">Applicants</h2>
           <div id="applicantsList"></div>
         </div>
 
-        <!-- Step 2 — Stripe payment form (assigned or pending_payment status) -->
+        <!-- Payment -->
         <div id="paymentSection" class="hidden" style="margin-top:20px">
           <div class="payment-box">
             <h3>💳 Pay to Begin Work</h3>
             <p style="font-size:.88rem;color:var(--text-mid);margin-bottom:4px">
-              Your payment is held securely and released to the student only after you
-              confirm the work is done.
+              Payment is held securely and only released after you confirm the work is done.
             </p>
             <div class="payment-breakdown" id="paymentBreakdown"></div>
             <div id="stripe-card-element"></div>
@@ -115,33 +123,28 @@
             <button class="btn btn--accent btn--full" id="payNowBtn">Pay &amp; Start Work →</button>
             <div class="secure-badge">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <rect x="3" y="11" width="18" height="11" rx="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
               Secured by Stripe. Your card details never touch our servers.
             </div>
           </div>
         </div>
 
-        <!-- Step 3 — Work in progress; poster releases when done -->
+        <!-- Release -->
         <div id="releasePaymentSection" class="hidden" style="margin-top:20px">
           <div class="terms-box" style="margin-bottom:16px">
-            <strong>Work is underway.</strong> Once the student completes the task to your
-            satisfaction, click below to release their payment and close the job.
+            <strong>Work is underway.</strong> Once the student finishes, click below to
+            release their payment and close the job.
           </div>
           <button class="btn btn--accent" id="releasePaymentBtn">
             ✅ Mark Work Done &amp; Release Payment
           </button>
         </div>
 
-        <!-- Step 4 — Rate the student -->
+        <!-- Rate student -->
         <div id="rateStudentSection" class="hidden" style="margin-top:24px">
-          <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:8px">
-            Rate the Student
-          </h2>
-          <p style="color:var(--text-mid);font-size:.9rem;margin-bottom:16px">
-            Leave an honest rating to help the community.
-          </p>
+          <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:8px">Rate the Student</h2>
+          <p style="color:var(--text-mid);font-size:.9rem;margin-bottom:16px">Leave an honest rating to help the community.</p>
           <div class="star-picker" id="posterStarPicker" role="group" aria-label="Star rating">
             <button type="button" class="star-btn" data-val="1" aria-label="1 star">★</button>
             <button type="button" class="star-btn" data-val="2" aria-label="2 stars">★</button>
@@ -152,19 +155,16 @@
           <p class="star-hint" id="posterStarHint" style="margin:8px 0 12px">Tap to rate</p>
           <div class="form-group">
             <label for="posterComment">Comment (optional)</label>
-            <textarea id="posterComment" rows="3"
-              placeholder="Was the student punctual, careful, professional?" maxlength="500"></textarea>
+            <textarea id="posterComment" rows="3" placeholder="Was the student punctual, careful, professional?" maxlength="500"></textarea>
           </div>
-          <div class="alert alert--error hidden" id="rateError" role="alert"></div>
+          <div class="alert alert--error   hidden" id="rateError"   role="alert"></div>
           <div class="alert alert--success hidden" id="rateSuccess" role="status"></div>
-          <button class="btn btn--accent" id="submitPosterRating" style="margin-top:12px" disabled>
-            Submit Rating
-          </button>
+          <button class="btn btn--accent" id="submitPosterRating" style="margin-top:12px" disabled>Submit Rating</button>
         </div>
 
         <div class="alert alert--success hidden" id="completeSuccess" role="status" style="margin-top:16px"></div>
-        <div class="alert alert--error hidden"   id="completeError"  role="alert"  style="margin-top:16px"></div>
-      </div>
+        <div class="alert alert--error   hidden" id="completeError"  role="alert"  style="margin-top:16px"></div>
+      </div><!-- /taskDetail -->
     </div>
   </main>
 
@@ -176,393 +176,358 @@
     let stripeInstance = null;
     let cardElement    = null;
 
-    // ── Helpers ───────────────────────────────────────────
     function escHtml(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
     function fmtDate(d) {
-      return d ? new Date(d).toLocaleDateString('en-US',
-        { month:'short', day:'numeric', year:'numeric' }) : '—';
+      return d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     }
-    const statusLabel = {
-      open:            'Open — Accepting Applicants',
-      assigned:        'Student Accepted — Payment Needed',
-      pending_payment: 'Payment Processing',
-      active:          'Work in Progress',
-      pending_review:  'Work Done — Rate the Student',
-      completed:       'Completed',
-      cancelled:       'Cancelled',
+    const STATUS_LABEL = {
+      open:'Open — Accepting Applicants', assigned:'Student Accepted — Payment Needed',
+      pending_payment:'Payment Processing', active:'Work in Progress',
+      pending_review:'Work Done — Rate the Student', completed:'Completed', cancelled:'Cancelled',
     };
-    function getLabel(s) { return statusLabel[s] || s; }
+    function getLabel(s) { return STATUS_LABEL[s] || s; }
 
-    function showMsg(msg, type = 'success') {
-      const el = document.getElementById(type === 'success' ? 'completeSuccess' : 'completeError');
-      const ot = document.getElementById(type === 'success' ? 'completeError' : 'completeSuccess');
-      el.textContent = msg;
-      el.classList.remove('hidden');
+    function showMsg(msg, type='success') {
+      const el = document.getElementById(type==='success' ? 'completeSuccess' : 'completeError');
+      const ot = document.getElementById(type==='success' ? 'completeError'   : 'completeSuccess');
+      el.textContent = msg; el.classList.remove('hidden');
       ot.classList.add('hidden');
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      el.scrollIntoView({behavior:'smooth',block:'nearest'});
     }
 
     function updateStepIndicator(status) {
-      const si = document.getElementById('stepIndicator');
-      si.classList.remove('hidden');
-      const steps = ['step1','step2','step3','step4'];
-      const activeIdx = {
-        open: 0, assigned: 1, pending_payment: 1, active: 2,
-        pending_review: 3, completed: 3,
-      }[status] ?? 0;
-      steps.forEach((id, i) => {
+      const idx = {open:0,assigned:1,pending_payment:1,active:2,pending_review:3,completed:3}[status] ?? 0;
+      ['step1','step2','step3','step4'].forEach((id,i) => {
         const el = document.getElementById(id);
         el.className = 'step-indicator__step';
-        if (i < activeIdx)      el.classList.add('done');
-        else if (i === activeIdx) el.classList.add('active');
+        if (i < idx) el.classList.add('done');
+        else if (i === idx) el.classList.add('active');
       });
     }
 
-    // ── Lookup ─────────────────────────────────────────────
-    document.getElementById('lookupForm').addEventListener('submit', async e => {
+    // ── Step 1: email form ─────────────────────────────────
+    document.getElementById('emailForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const errEl = document.getElementById('lookupError');
+      const errEl = document.getElementById('emailError');
       errEl.classList.add('hidden');
-
       const email = document.getElementById('lookupEmail').value.trim();
-      const jobId = document.getElementById('lookupJobId').value.trim();
-      if (!email || !jobId) {
-        errEl.textContent = 'Both fields are required.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-
-      try {
-        const res = await fetch(
-          `${BASE}/applications/job/${encodeURIComponent(jobId)}?poster_email=${encodeURIComponent(email)}`
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Could not load task.');
-        currentJob   = data.job;
-        currentEmail = email;
-        renderTask(data.job, data.applications);
-      } catch (err) {
-        errEl.textContent = err.message;
-        errEl.classList.remove('hidden');
-      }
+      if (!email) { errEl.textContent='Email is required.'; errEl.classList.remove('hidden'); return; }
+      currentEmail = email;
+      await loadJobList('');
     });
 
-    // ── Render task ────────────────────────────────────────
+    document.getElementById('backToEmailBtn').addEventListener('click', () => {
+      document.getElementById('jobListSection').classList.add('hidden');
+      document.getElementById('emailSection').classList.remove('hidden');
+      document.getElementById('manageTitle').textContent = 'My Posted Tasks';
+    });
+
+    document.getElementById('jobSearchBtn').addEventListener('click', () => {
+      loadJobList(document.getElementById('jobSearch').value.trim());
+    });
+    document.getElementById('jobSearch').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadJobList(document.getElementById('jobSearch').value.trim());
+    });
+
+    async function loadJobList(search) {
+      const listEl   = document.getElementById('jobList');
+      const subtitle = document.getElementById('jobListSubtitle');
+      listEl.innerHTML = '<div class="loading-state">Loading…</div>';
+      document.getElementById('emailSection').classList.add('hidden');
+      document.getElementById('taskDetail').classList.add('hidden');
+      document.getElementById('jobListSection').classList.remove('hidden');
+      document.getElementById('manageTitle').textContent = 'My Posted Tasks';
+
+      try {
+        const qs  = `poster_email=${encodeURIComponent(currentEmail)}&search=${encodeURIComponent(search)}`;
+        const res = await fetch(`${BASE}/jobs/mine/poster?${qs}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load tasks.');
+
+        const jobs = data.jobs;
+        subtitle.textContent = `Showing tasks for ${currentEmail}`;
+
+        if (!jobs.length) {
+          listEl.innerHTML = `<div class="empty-state">
+            <p>${search ? 'No tasks match that search.' : 'No tasks found for this email.'}</p>
+          </div>`;
+          return;
+        }
+
+        listEl.innerHTML = jobs.map(j => `
+          <div class="job-pick-card" data-id="${escHtml(j.id)}" tabindex="0" role="button"
+               aria-label="Manage: ${escHtml(j.title)}">
+            <div>
+              <div class="job-pick-card__title">${escHtml(j.title)}</div>
+              <div class="job-pick-card__meta">
+                ${escHtml(j.category)} · ${escHtml(j.city)}, ${escHtml(j.state)} ·
+                $${parseFloat(j.pay).toFixed(2)} · ${getLabel(j.status)}
+              </div>
+            </div>
+            <span class="job-pick-card__arrow">→</span>
+          </div>`).join('');
+
+        listEl.querySelectorAll('.job-pick-card').forEach(card => {
+          const open = () => openJob(card.dataset.id);
+          card.addEventListener('click', open);
+          card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') open(); });
+        });
+      } catch (err) {
+        listEl.innerHTML = `<div class="empty-state"><p>${escHtml(err.message)}</p></div>`;
+      }
+    }
+
+    // ── Open a specific job ────────────────────────────────
+    async function openJob(jobId) {
+      try {
+        const res  = await fetch(`${BASE}/applications/job/${encodeURIComponent(jobId)}?poster_email=${encodeURIComponent(currentEmail)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load task.');
+        currentJob = data.job;
+        // Reset payment state for new job
+        stripeInstance = null; cardElement = null;
+        renderTask(data.job, data.applications);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    document.getElementById('backToListBtn').addEventListener('click', () => {
+      document.getElementById('taskDetail').classList.add('hidden');
+      document.getElementById('jobListSection').classList.remove('hidden');
+      document.getElementById('manageTitle').textContent = 'My Posted Tasks';
+      // reload to refresh statuses
+      loadJobList(document.getElementById('jobSearch').value.trim());
+    });
+
+    // ── Render task detail ─────────────────────────────────
     function renderTask(job, apps) {
-      document.getElementById('lookupSection').classList.add('hidden');
+      document.getElementById('jobListSection').classList.add('hidden');
       document.getElementById('taskDetail').classList.remove('hidden');
       document.getElementById('manageTitle').textContent = job.title;
       updateStepIndicator(job.status);
+
+      // Reset all sections
+      ['applicantsSection','paymentSection','releasePaymentSection','rateStudentSection',
+       'completeSuccess','completeError','rateError','rateSuccess'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+      document.getElementById('card-errors').textContent = '';
 
       const payout = (job.pay * 0.95).toFixed(2);
       document.getElementById('taskInfo').innerHTML = `
         <div class="info-card">
           <h3>${escHtml(job.title)}</h3>
-          <p style="color:var(--text-mid)">${escHtml(job.category)} &middot;
-            ${escHtml(job.city)}, ${escHtml(job.state)}</p>
-          <p style="margin-top:6px">Pay: <strong style="color:var(--accent)">
-            $${parseFloat(job.pay).toFixed(2)}</strong>
-            <span style="font-size:.8rem;color:var(--dim)"> &middot; Student receives $${payout}</span>
-          </p>
-          <p id="statusLine" style="margin-top:6px">
-            Status: <strong>${getLabel(job.status)}</strong>
-          </p>
-          <p style="margin-top:6px;font-size:.8rem;color:var(--dim)">
-            Posted ${fmtDate(job.created_at)}
-          </p>
+          <p style="color:var(--text-mid)">${escHtml(job.category)} &middot; ${escHtml(job.city)}, ${escHtml(job.state)}</p>
+          <p style="margin-top:6px">Pay: <strong style="color:var(--accent)">$${parseFloat(job.pay).toFixed(2)}</strong>
+            <span style="font-size:.8rem;color:var(--dim)"> &middot; Student receives $${payout}</span></p>
+          <p id="statusLine" style="margin-top:6px">Status: <strong>${getLabel(job.status)}</strong></p>
+          <p style="margin-top:4px;font-size:.8rem;color:var(--dim)">Posted ${fmtDate(job.created_at)}</p>
         </div>`;
 
-      if (job.status === 'open')                                          showApplicants(apps);
+      if (job.status === 'open') showApplicants(apps);
       if (job.status === 'assigned' || job.status === 'pending_payment') initStripePayment(job);
-      if (job.status === 'active')
-        document.getElementById('releasePaymentSection').classList.remove('hidden');
+      if (job.status === 'active') document.getElementById('releasePaymentSection').classList.remove('hidden');
       if (job.status === 'pending_review' || job.status === 'completed') {
         document.getElementById('rateStudentSection').classList.remove('hidden');
         setupPosterRating(job.id);
       }
-      if (job.status === 'completed') {
-        showMsg('✅ This task is fully completed. Thank you for using Campus Hands!');
-      }
+      if (job.status === 'completed') showMsg('✅ This task is fully completed. Thank you for using Campus Hands!');
     }
 
-    // ── Show applicants (step 1) ───────────────────────────
+    // ── Applicants ─────────────────────────────────────────
     function showApplicants(apps) {
-      const section = document.getElementById('applicantsSection');
-      const list    = document.getElementById('applicantsList');
-      section.classList.remove('hidden');
-
+      document.getElementById('applicantsSection').classList.remove('hidden');
+      const list = document.getElementById('applicantsList');
       if (!apps.length) {
         list.innerHTML = '<p class="text-dim" style="padding:12px 0">No applicants yet. Check back soon.</p>';
         return;
       }
-
       list.innerHTML = apps.map(a => `
         <div class="app-card" id="acard-${escHtml(a.id)}">
           <h4>${escHtml(a.student_name)}</h4>
           <p style="color:var(--text-mid)">${escHtml(a.student_email)}</p>
-          ${a.message
-            ? `<p style="margin:6px 0;font-size:.9rem;font-style:italic">"${escHtml(a.message)}"</p>`
-            : ''}
+          ${a.message ? `<p style="margin:6px 0;font-size:.9rem;font-style:italic">"${escHtml(a.message)}"</p>` : ''}
           ${a.status === 'pending' ? `
             <div class="app-actions" style="margin-top:10px;display:flex;gap:8px">
-              <button class="btn btn--accent btn--sm accept-btn" data-id="${escHtml(a.id)}">
-                ✅ Accept
-              </button>
-              <button class="btn btn--danger btn--sm reject-btn" data-id="${escHtml(a.id)}">
-                Decline
-              </button>
+              <button class="btn btn--accent btn--sm accept-btn" data-id="${escHtml(a.id)}">✅ Accept</button>
+              <button class="btn btn--danger  btn--sm reject-btn" data-id="${escHtml(a.id)}">Decline</button>
             </div>` : `
             <span class="job-card__status ${a.status==='accepted'?'status-assigned':'status-cancelled'}"
-              style="margin-top:6px;display:inline-block">
-              ${a.status === 'accepted' ? 'Accepted' : 'Declined'}
-            </span>`}
+              style="margin-top:6px;display:inline-block">${a.status==='accepted'?'Accepted':'Declined'}</span>`}
         </div>`).join('');
-
-      list.querySelectorAll('.accept-btn')
-        .forEach(b => b.addEventListener('click', () => acceptApplicant(b.dataset.id)));
-      list.querySelectorAll('.reject-btn')
-        .forEach(b => b.addEventListener('click', () => rejectApplicant(b.dataset.id)));
+      list.querySelectorAll('.accept-btn').forEach(b => b.addEventListener('click', () => acceptApplicant(b.dataset.id)));
+      list.querySelectorAll('.reject-btn').forEach(b => b.addEventListener('click', () => rejectApplicant(b.dataset.id)));
     }
 
-    // ── Accept applicant ───────────────────────────────────
     async function acceptApplicant(appId) {
-      if (!confirm('Accept this applicant? All other applications will be declined.')) return;
+      if (!confirm('Accept this applicant? All others will be declined.')) return;
       const btn = document.querySelector(`.accept-btn[data-id="${appId}"]`);
       if (btn) { btn.disabled = true; btn.textContent = 'Accepting…'; }
-
       try {
-        const res = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/accept`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ poster_email: currentEmail }),
+        const res  = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/accept`, {
+          method:'PATCH', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({poster_email: currentEmail}),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-
         currentJob.status = 'assigned';
         document.getElementById('applicantsSection').classList.add('hidden');
-        document.getElementById('statusLine').innerHTML =
-          `Status: <strong>${getLabel('assigned')}</strong>`;
+        document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('assigned')}</strong>`;
         updateStepIndicator('assigned');
         showMsg('✅ ' + data.message);
-
-        // Show payment form immediately
         document.getElementById('paymentSection').classList.remove('hidden');
         initStripePayment(currentJob);
       } catch (err) {
-        showMsg(err.message, 'error');
-        if (btn) { btn.disabled = false; btn.textContent = '✅ Accept'; }
+        showMsg(err.message,'error');
+        if (btn) { btn.disabled=false; btn.textContent='✅ Accept'; }
       }
     }
 
-    // ── Decline applicant ──────────────────────────────────
     async function rejectApplicant(appId) {
       const btn = document.querySelector(`.reject-btn[data-id="${appId}"]`);
-      if (btn) { btn.disabled = true; }
+      if (btn) btn.disabled = true;
       try {
-        const res = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/reject`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ poster_email: currentEmail }),
+        const res  = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/reject`, {
+          method:'PATCH', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({poster_email: currentEmail}),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-
         const card = document.getElementById(`acard-${appId}`);
         if (card) card.querySelector('.app-actions').innerHTML =
           '<span class="job-card__status status-cancelled" style="margin-top:6px;display:inline-block">Declined</span>';
       } catch (err) {
-        showMsg(err.message, 'error');
+        showMsg(err.message,'error');
         if (btn) btn.disabled = false;
       }
     }
 
-    // ── Stripe: init card form (step 2) ────────────────────
+    // ── Stripe payment ─────────────────────────────────────
     async function initStripePayment(job) {
-      const paymentSection = document.getElementById('paymentSection');
-      paymentSection.classList.remove('hidden');
-
-      // Populate breakdown
-      const fee    = (job.pay * 0.05).toFixed(2);
-      const payout = (job.pay * 0.95).toFixed(2);
+      document.getElementById('paymentSection').classList.remove('hidden');
+      const fee = (job.pay*0.05).toFixed(2), payout = (job.pay*0.95).toFixed(2);
       document.getElementById('paymentBreakdown').innerHTML = `
-        <div class="payment-breakdown__row">
-          <span>Task: ${escHtml(job.title)}</span>
-          <span>$${parseFloat(job.pay).toFixed(2)}</span>
-        </div>
-        <div class="payment-breakdown__row">
-          <span>Platform fee (5%)</span><span>$${fee}</span>
-        </div>
-        <div class="payment-breakdown__row" style="font-size:.82rem;color:var(--dim)">
-          <span>Student receives</span><span>$${payout}</span>
-        </div>
-        <div class="payment-breakdown__row payment-breakdown__row--total">
-          <span>You are charged</span><span>$${parseFloat(job.pay).toFixed(2)}</span>
-        </div>`;
+        <div class="payment-breakdown__row"><span>Task: ${escHtml(job.title)}</span><span>$${parseFloat(job.pay).toFixed(2)}</span></div>
+        <div class="payment-breakdown__row"><span>Platform fee (5%)</span><span>$${fee}</span></div>
+        <div class="payment-breakdown__row" style="font-size:.82rem;color:var(--dim)"><span>Student receives</span><span>$${payout}</span></div>
+        <div class="payment-breakdown__row payment-breakdown__row--total"><span>You are charged</span><span>$${parseFloat(job.pay).toFixed(2)}</span></div>`;
 
-      // Create payment intent
       let clientSecret, publishableKey;
       try {
         const res  = await fetch(`${BASE}/payments/create-intent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: job.id, poster_email: currentEmail }),
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({job_id: job.id, poster_email: currentEmail}),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-        clientSecret   = data.clientSecret;
-        publishableKey = data.publishableKey;
+        clientSecret = data.clientSecret; publishableKey = data.publishableKey;
       } catch (err) {
         document.getElementById('card-errors').textContent = err.message;
         document.getElementById('payNowBtn').disabled = true;
         return;
       }
 
-      // Mount Stripe card element
       stripeInstance = Stripe(publishableKey);
-      const elements = stripeInstance.elements();
-      // Only mount once
       if (!cardElement) {
-        cardElement = elements.create('card', {
-          style: {
-            base: {
-              fontSize: '16px', color: '#1a1d2e',
-              fontFamily: 'Inter, system-ui, sans-serif',
-              '::placeholder': { color: '#8b90a7' },
-            },
-            invalid: { color: '#ef4444' },
-          },
+        cardElement = stripeInstance.elements().create('card', {
+          style: { base: { fontSize:'16px', color:'#1a1d2e', fontFamily:'Inter,system-ui,sans-serif', '::placeholder':{color:'#8b90a7'} }, invalid:{color:'#ef4444'} },
         });
         cardElement.mount('#stripe-card-element');
-        cardElement.on('change', e => {
-          document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
-        });
+        cardElement.on('change', e => { document.getElementById('card-errors').textContent = e.error ? e.error.message : ''; });
       }
       document.getElementById('payNowBtn')._clientSecret = clientSecret;
     }
 
-    // ── Pay now ────────────────────────────────────────────
     document.getElementById('payNowBtn').addEventListener('click', async () => {
-      const btn          = document.getElementById('payNowBtn');
+      const btn = document.getElementById('payNowBtn');
       const clientSecret = btn._clientSecret;
       if (!clientSecret || !stripeInstance || !cardElement) {
-        document.getElementById('card-errors').textContent =
-          'Payment form not ready. Please wait a moment and try again.';
+        document.getElementById('card-errors').textContent = 'Payment form not ready. Please wait a moment.';
         return;
       }
-      btn.disabled    = true;
-      btn.textContent = 'Processing…';
+      btn.disabled = true; btn.textContent = 'Processing…';
       document.getElementById('card-errors').textContent = '';
 
-      const { paymentIntent, error } = await stripeInstance.confirmCardPayment(clientSecret, {
-        payment_method: { card: cardElement },
-      });
-
+      const { paymentIntent, error } = await stripeInstance.confirmCardPayment(clientSecret, { payment_method:{ card: cardElement } });
       if (error) {
         document.getElementById('card-errors').textContent = error.message;
-        btn.disabled    = false;
-        btn.textContent = 'Pay & Start Work →';
+        btn.disabled = false; btn.textContent = 'Pay & Start Work →';
         return;
       }
-
       if (paymentIntent.status === 'succeeded') {
         try {
           const res  = await fetch(`${BASE}/payments/confirm`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              payment_intent_id: paymentIntent.id,
-              poster_email: currentEmail,
-            }),
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({payment_intent_id: paymentIntent.id, poster_email: currentEmail}),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
-
           currentJob.status = 'active';
           document.getElementById('paymentSection').classList.add('hidden');
           document.getElementById('releasePaymentSection').classList.remove('hidden');
-          document.getElementById('statusLine').innerHTML =
-            `Status: <strong>${getLabel('active')}</strong>`;
+          document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('active')}</strong>`;
           updateStepIndicator('active');
-          showMsg('✅ Payment successful! The student has been notified. Release payment once work is done.');
+          showMsg('✅ Payment successful! Release payment once work is done.');
         } catch (err) {
           document.getElementById('card-errors').textContent = err.message;
-          btn.disabled    = false;
-          btn.textContent = 'Pay & Start Work →';
+          btn.disabled = false; btn.textContent = 'Pay & Start Work →';
         }
       }
     });
 
-    // ── Release payment (step 3 → step 4) ─────────────────
     document.getElementById('releasePaymentBtn').addEventListener('click', async () => {
-      if (!confirm('Confirm the student has finished the work? This releases their payment.')) return;
+      if (!confirm('Confirm the student has finished? This releases their payment.')) return;
       const btn = document.getElementById('releasePaymentBtn');
-      btn.disabled    = true;
-      btn.textContent = 'Releasing…';
+      btn.disabled = true; btn.textContent = 'Releasing…';
       try {
         const res  = await fetch(`${BASE}/jobs/${encodeURIComponent(currentJob.id)}/release`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ poster_email: currentEmail }),
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({poster_email: currentEmail}),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-
         currentJob.status = 'pending_review';
         document.getElementById('releasePaymentSection').classList.add('hidden');
         document.getElementById('rateStudentSection').classList.remove('hidden');
-        document.getElementById('statusLine').innerHTML =
-          `Status: <strong>${getLabel('pending_review')}</strong>`;
+        document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('pending_review')}</strong>`;
         updateStepIndicator('pending_review');
         setupPosterRating(currentJob.id);
-        showMsg('✅ Payment released to the student. Please leave them a rating!');
+        showMsg('✅ Payment released! Please leave a rating for the student.');
       } catch (err) {
-        showMsg(err.message, 'error');
-        btn.disabled    = false;
-        btn.textContent = '✅ Mark Work Done & Release Payment';
+        showMsg(err.message,'error');
+        btn.disabled = false; btn.textContent = '✅ Mark Work Done & Release Payment';
       }
     });
 
-    // ── Rate student (step 4) ──────────────────────────────
+    // ── Rating ─────────────────────────────────────────────
     function setupPosterRating(jobId) {
-      let selectedStars = 0;
+      let selected = 0;
       const starBtns  = document.querySelectorAll('#posterStarPicker .star-btn');
       const submitBtn = document.getElementById('submitPosterRating');
       const hint      = document.getElementById('posterStarHint');
-      const hints     = ['', 'Terrible', 'Poor', 'OK', 'Good', 'Excellent'];
+      const hints     = ['','Terrible','Poor','OK','Good','Excellent'];
 
-      function highlightStars(n) {
-        starBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= n));
-      }
-
+      function highlight(n) { starBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= n)); }
       starBtns.forEach(btn => {
-        btn.addEventListener('mouseenter', () => highlightStars(parseInt(btn.dataset.val)));
-        btn.addEventListener('mouseleave', () => highlightStars(selectedStars));
-        btn.addEventListener('click', () => {
-          selectedStars      = parseInt(btn.dataset.val);
-          hint.textContent   = hints[selectedStars];
-          submitBtn.disabled = false;
-          highlightStars(selectedStars);
-        });
+        btn.addEventListener('mouseenter', () => highlight(parseInt(btn.dataset.val)));
+        btn.addEventListener('mouseleave', () => highlight(selected));
+        btn.addEventListener('click', () => { selected = parseInt(btn.dataset.val); hint.textContent = hints[selected]; submitBtn.disabled = false; highlight(selected); });
       });
 
       submitBtn.addEventListener('click', async () => {
-        if (!selectedStars) return;
-        submitBtn.disabled    = true;
-        submitBtn.textContent = 'Submitting…';
+        if (!selected) return;
+        submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
         const comment = document.getElementById('posterComment').value.trim();
         try {
-          const res = await fetch(`${BASE}/jobs/${encodeURIComponent(jobId)}/rate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stars: selectedStars, comment, poster_email: currentEmail }),
+          const res  = await fetch(`${BASE}/jobs/${encodeURIComponent(jobId)}/rate`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({stars: selected, comment, poster_email: currentEmail}),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
-
           document.getElementById('rateStudentSection').classList.add('hidden');
           document.getElementById('rateSuccess').textContent = '⭐ ' + data.message;
           document.getElementById('rateSuccess').classList.remove('hidden');
@@ -570,18 +535,17 @@
         } catch (err) {
           document.getElementById('rateError').textContent = err.message;
           document.getElementById('rateError').classList.remove('hidden');
-          submitBtn.disabled    = false;
-          submitBtn.textContent = 'Submit Rating';
+          submitBtn.disabled = false; submitBtn.textContent = 'Submit Rating';
         }
       });
     }
 
-    // ── Auto-fill from URL params ──────────────────────────
+    // ── Auto-load if email in URL params ───────────────────
     const p = new URLSearchParams(location.search);
-    if (p.get('job') && p.get('email')) {
-      document.getElementById('lookupJobId').value = p.get('job');
+    if (p.get('email')) {
       document.getElementById('lookupEmail').value = p.get('email');
-      document.getElementById('lookupForm').dispatchEvent(new Event('submit'));
+      currentEmail = p.get('email');
+      loadJobList('');
     }
   </script>
 </body>

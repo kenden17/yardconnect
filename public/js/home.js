@@ -288,12 +288,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       postSuccessEl.innerHTML = `
         ✅ <strong>Task posted!</strong> Verified students near you can now apply.<br />
-        <span style="font-size:.85rem">
-          Save this link to manage your task, view applicants, and mark it complete:<br />
-          <a href="/manage.html?job=${escHtml(result.jobId)}&amp;email=${encodeURIComponent(posterEmail)}"
-             style="color:var(--accent);word-break:break-all">
-            campushands.app/manage.html?job=${escHtml(result.jobId)}
+        <span style="font-size:.85rem;display:block;margin-top:8px">
+          <a href="/manage.html?email=${encodeURIComponent(posterEmail)}"
+             class="btn btn--accent btn--sm" style="display:inline-block;margin-top:6px">
+            Manage My Tasks →
           </a>
+          <span style="display:block;margin-top:8px;color:var(--dim)">
+            Bookmark that link — use it anytime to view applicants and manage your tasks.
+          </span>
         </span>
       `;
       postSuccessEl.classList.remove('hidden');

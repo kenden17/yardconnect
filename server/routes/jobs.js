@@ -70,6 +70,35 @@ router.get('/', [
   return res.json({ jobs, total, page, pages: Math.ceil(total / limit) });
 });
 
+// ── GET /api/jobs/mine/poster — poster views their own jobs ─
+// Auth: poster_email in query param (no account required)
+router.get('/mine/poster', (req, res) => {
+  const email = (req.query.poster_email || '').toLowerCase().trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Valid email is required.' });
+  }
+
+  const search = (req.query.search || '').trim().toLowerCase();
+
+  let sql = `
+    SELECT id, title, category, city, state, pay, status, created_at
+    FROM jobs
+    WHERE poster_email = ?
+    AND status != 'cancelled'
+  `;
+  const params = [email];
+
+  if (search) {
+    sql += ' AND LOWER(title) LIKE ?';
+    params.push(`%${search}%`);
+  }
+
+  sql += ' ORDER BY created_at DESC LIMIT 50';
+
+  const jobs = db.prepare(sql).all(params);
+  return res.json({ jobs });
+});
+
 // ── GET /api/jobs/categories ────────────────────────────────
 router.get('/categories', (req, res) => res.json({ categories: CATEGORIES }));
 
