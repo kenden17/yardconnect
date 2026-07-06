@@ -4,6 +4,7 @@ const fs       = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { body, validationResult, query } = require('express-validator');
 const jwt      = require('jsonwebtoken');
+require('dotenv').config();
 const db       = require('../db');
 const { requireAuth }       = require('../middleware/auth');
 const { uploadIdPhoto }     = require('../utils/upload');
@@ -11,6 +12,12 @@ const { isPosterOldEnough } = require('../utils/ageCheck');
 const { validateZipState, validatePhone, validateIdNumber, validateEmailDomain, validateFullName } = require('../utils/validate');
 
 const router = express.Router();
+
+// Stripe — used only in the release route for the actual payout transfer
+const STRIPE_KEY = (process.env.STRIPE_SECRET_KEY || '').trim();
+const stripe = /^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(STRIPE_KEY)
+  ? require('stripe')(STRIPE_KEY)
+  : null;
 
 const CATEGORIES = [
   'Errands & Delivery',
@@ -343,10 +350,11 @@ router.post('/:id/mark-complete', [
 });
 
 // ── POST /api/jobs/:id/release ───────────────────────────────
-// Poster releases payment (marks work done): active → pending_review
+// Poster confirms work done: active → pending_review
+// This is where the student actually gets paid via Stripe transfer.
 router.post('/:id/release', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
@@ -359,8 +367,57 @@ router.post('/:id/release', [
     return res.status(400).json({ error: 'Task must be active before releasing payment.' });
   }
 
-  db.prepare("UPDATE jobs SET status = 'pending_review', completed_at = datetime('now') WHERE id = ?").run(req.params.id);
-  return res.json({ message: 'Payment released. Both parties can now leave a rating.' });
+  // Get the paid transaction and student stripe account
+  const tx = db.prepare(`
+    SELECT t.*, u.stripe_account_id AS student_stripe_account
+    FROM transactions t
+    JOIN users u ON u.id = t.student_id
+    WHERE t.job_id = ? AND t.status = 'paid'
+  `).get(job.id);
+
+  if (!tx) return res.status(400).json({ error: 'No confirmed payment found for this task.' });
+
+  const payoutCents = Math.round(tx.student_payout * 100);
+
+  // Transfer to student if they have a connected Stripe account
+  let transferId = null;
+  if (tx.student_stripe_account) {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured on this server.' });
+    }
+    try {
+      const transfer = await stripe.transfers.create({
+        amount:      payoutCents,
+        currency:    'usd',
+        destination: tx.student_stripe_account,
+        description: `Campus Hands payout: "${job.title}"`,
+        metadata:    { job_id: job.id, transaction_id: tx.id },
+      });
+      transferId = transfer.id;
+    } catch (err) {
+      console.error('Stripe transfer error:', err.message);
+      return res.status(500).json({
+        error: 'Could not transfer funds to student: ' + err.message,
+      });
+    }
+  }
+  // If student has no Stripe account, funds remain on the platform —
+  // admin can manually disburse or student needs to set up payouts.
+
+  db.prepare(`
+    UPDATE transactions
+    SET stripe_transfer_id = ?, payout_status = ?
+    WHERE id = ?
+  `).run(transferId, transferId ? 'transferred' : 'pending_account', tx.id);
+
+  db.prepare("UPDATE jobs SET status = 'pending_review', completed_at = datetime('now') WHERE id = ?")
+    .run(req.params.id);
+
+  const msg = tx.student_stripe_account
+    ? 'Payment released and sent to the student. Both parties can now leave a rating.'
+    : 'Work marked complete. The student needs to set up a payout account to receive their earnings.';
+
+  return res.json({ message: msg });
 });
 
 // ── POST /api/jobs/:id/rate ──────────────────────────────────

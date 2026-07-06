@@ -68,15 +68,11 @@ router.post('/create-intent', requireStripe, [
       currency:             'usd',
       payment_method_types: ['card'],
       description:          `Campus Hands: "${job.title}"`,
-      metadata:             { job_id, poster_email },
+      // No transfer_data here — funds are held on the platform account.
+      // The actual payout to the student happens in /api/jobs/:id/release
+      // only after the poster confirms work is done.
+      metadata: { job_id, poster_email, student_id: job.student_id },
     };
-
-    if (job.student_stripe_account) {
-      intentParams.transfer_data = {
-        destination: job.student_stripe_account,
-        amount:      payoutCents,
-      };
-    }
 
     const intent = await stripe.paymentIntents.create(intentParams);
 

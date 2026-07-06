@@ -13,7 +13,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('settingsEmail').textContent = user.email;
 
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('stripe') === 'success') showAlert('✅ Payout account connected!');
+  if (urlParams.get('stripe') === 'success') showAlert('✅ Payout account connected! You can now receive payments.');
+  if (urlParams.get('stripe') === 'refresh') showAlert('⚠️ Payout setup incomplete. Please try again.', 'error');
+
+  // ── Payout warning banner ────────────────────────────────
+  // Show a persistent top-of-page warning if no Stripe account
+  if (!user.stripe_account_id) {
+    const banner = document.createElement('div');
+    banner.id = 'payoutWarningBanner';
+    banner.style.cssText = [
+      'background:#fef3c7', 'border-bottom:2px solid #f59e0b', 'padding:14px 24px',
+      'display:flex', 'align-items:center', 'gap:14px', 'flex-wrap:wrap',
+    ].join(';');
+    banner.innerHTML = `
+      <span style="font-size:1.3rem">⚠️</span>
+      <div style="flex:1;min-width:200px">
+        <strong style="color:#92400e">You won't get paid without a payout account.</strong>
+        <span style="color:#78350f;font-size:.88rem;display:block;margin-top:2px">
+          Set up your bank account now so earnings from completed tasks are sent to you automatically.
+        </span>
+      </div>
+      <button class="btn btn--sm" id="bannerOnboardBtn"
+        style="background:#f59e0b;color:#fff;border:none;flex-shrink:0">
+        Set Up Payouts →
+      </button>`;
+    // Insert after the header
+    document.querySelector('.dash-layout').prepend(banner);
+
+    document.getElementById('bannerOnboardBtn').addEventListener('click', async () => {
+      try {
+        const { url } = await API.stripeOnboard();
+        window.location.href = url;
+      } catch (err) { alert(err.message); }
+    });
+  }
 
   // ── Panel nav ────────────────────────────────────────────
   const navBtns = document.querySelectorAll('.dash-nav-btn');
@@ -239,20 +272,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                  border:1px solid #bbf7d0;border-radius:4px;font-size:.85rem;color:var(--success)">
               ✅ You've been accepted! The poster will contact you to coordinate.
               ${j.address ? `<br/><span style="color:var(--text-mid)">📍 ${escHtml(j.address)}</span>` : ''}
-            </div>` : ''}
+            </div>
+            ${!user.stripe_account_id ? `
+            <div style="margin-top:6px;padding:10px;background:#fef3c7;border:1px solid #f59e0b;
+                 border-radius:4px;font-size:.84rem;color:#92400e">
+              ⚠️ <strong>Set up your payout account before work begins</strong> or you won't receive payment.
+              <br/><button class="btn btn--sm" style="margin-top:6px;background:#f59e0b;color:#fff;border:none"
+                onclick="document.getElementById('stripeOnboardBtn').click()">Set Up Payouts →</button>
+            </div>` : ''}` : ''}
 
           ${j.status === 'pending_payment' ? `
             <div style="margin-top:10px;padding:10px;background:var(--warn-l);
                  border:1px solid #fde68a;border-radius:4px;font-size:.85rem;color:var(--warn)">
               ⏳ The poster is processing payment. Work begins once payment is confirmed.
-            </div>` : ''}
+            </div>
+            ${!user.stripe_account_id ? `
+            <div style="margin-top:6px;padding:10px;background:#fef3c7;border:1px solid #f59e0b;
+                 border-radius:4px;font-size:.84rem;color:#92400e">
+              ⚠️ <strong>No payout account found.</strong> Set one up now — payment is being processed and
+              you need an account to receive your earnings.
+              <br/><button class="btn btn--sm" style="margin-top:6px;background:#f59e0b;color:#fff;border:none"
+                onclick="document.getElementById('stripeOnboardBtn').click()">Set Up Payouts →</button>
+            </div>` : ''}` : ''}
 
           ${j.status === 'active' ? `
             <div style="margin-top:10px;padding:10px;background:var(--blue-l);
                  border:1px solid #bfdbfe;border-radius:4px;font-size:.85rem;color:#1d4ed8">
               🚀 Work is in progress! Complete the task, then the poster will release payment.
               ${j.address ? `<br/><span style="color:var(--dim)">📍 ${escHtml(j.address)}</span>` : ''}
-            </div>` : ''}
+            </div>
+            ${!user.stripe_account_id ? `
+            <div style="margin-top:6px;padding:10px;background:#fef3c7;border:1px solid #f59e0b;
+                 border-radius:4px;font-size:.84rem;color:#92400e">
+              ⚠️ <strong>You still don't have a payout account.</strong> Set one up before the poster
+              marks the job complete — otherwise your payment can't be sent automatically.
+              <br/><button class="btn btn--sm" style="margin-top:6px;background:#f59e0b;color:#fff;border:none"
+                onclick="document.getElementById('stripeOnboardBtn').click()">Set Up Payouts →</button>
+            </div>` : ''}` : ''}
 
           ${j.status === 'pending_review' && !j.student_rated_poster ? `
             <div style="margin-top:12px">
@@ -290,7 +346,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     txList.innerHTML = '<div class="loading-state">Loading…</div>';
-    try {
       const { transactions } = await API.paymentHistory();
       if (!transactions.length) {
         txList.innerHTML = '<div class="empty-state"><p>No earnings yet. Complete a task to get paid.</p></div>';
