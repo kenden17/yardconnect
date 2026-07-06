@@ -64,10 +64,11 @@ router.post('/create-intent', requireStripe, [
 
   try {
     const intentParams = {
-      amount:      amountCents,
-      currency:    'usd',
-      description: `Campus Hands: "${job.title}"`,
-      metadata:    { job_id, poster_email },
+      amount:               amountCents,
+      currency:             'usd',
+      payment_method_types: ['card'],
+      description:          `Campus Hands: "${job.title}"`,
+      metadata:             { job_id, poster_email },
     };
 
     if (job.student_stripe_account) {
