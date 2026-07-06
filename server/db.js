@@ -96,6 +96,9 @@ const alterStatements = [
   "ALTER TABLE jobs ADD COLUMN photo_url TEXT",
   "ALTER TABLE transactions ADD COLUMN stripe_transfer_id TEXT",
   "ALTER TABLE transactions ADD COLUMN payout_status TEXT NOT NULL DEFAULT 'pending'",
+  "ALTER TABLE jobs ADD COLUMN flagged INTEGER DEFAULT 0",
+  "ALTER TABLE jobs ADD COLUMN flag_reason TEXT",
+  "ALTER TABLE users ADD COLUMN suspended INTEGER DEFAULT 0",
 ];
 
 for (const stmt of alterStatements) {

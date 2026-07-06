@@ -82,6 +82,10 @@ app.use('/uploads/ids', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, '..', 'uploads', 'ids')));
 
+// admin.html — security is enforced by the API (JWT), not the HTML file itself.
+// The page validates the token before loading any data.
+app.get('/admin.html', (req, res, next) => next());
+
 // Static frontend
 const PUBLIC = path.join(__dirname, '..', 'public');
 app.use(express.static(PUBLIC));

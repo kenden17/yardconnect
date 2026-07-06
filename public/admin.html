@@ -9,115 +9,253 @@
   <link rel="stylesheet" href="/css/main.css" />
   <style>
     body { background: var(--bg-alt); }
-    .admin-wrap { max-width: 1200px; margin: 0 auto; padding: 100px var(--pad-x) 60px; }
+    /* ── Login card ── */
+    .login-overlay { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
+    .login-card { background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-lg);
+                  padding:40px 36px; width:100%; max-width:380px; box-shadow:var(--shadow); text-align:center; }
+    .login-card h1 { font-family:var(--font-display); font-size:2.2rem; margin-bottom:8px; }
+    .login-card h1 span { color:var(--accent); }
+    .login-card p { color:var(--dim); font-size:.875rem; margin-bottom:28px; }
+    .login-card input { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--radius);
+                        background:var(--bg-alt); color:var(--text); font-size:.95rem; margin-bottom:16px; box-sizing:border-box; }
+    .login-card input:focus { outline:none; border-color:var(--accent); }
+    .login-error { color:var(--danger); font-size:.82rem; margin-bottom:12px; min-height:18px; }
+    /* ── Dashboard ── */
+    .admin-wrap { max-width:1300px; margin:0 auto; padding:100px var(--pad-x) 60px; }
     .admin-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:16px; }
     .admin-title { font-family:var(--font-display); font-size:clamp(2rem,5vw,3.5rem); color:var(--text); }
     .admin-title span { color:var(--accent); }
-    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:40px; }
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; margin-bottom:40px; }
     .stat-card { background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow); }
     .stat-card__num { font-family:var(--font-display); font-size:2.4rem; color:var(--accent); line-height:1; }
     .stat-card__label { font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin-top:4px; }
-    .tab-bar { display:flex; gap:4px; margin-bottom:24px; border-bottom:1.5px solid var(--border); }
+    .tab-bar { display:flex; gap:4px; margin-bottom:24px; border-bottom:1.5px solid var(--border); flex-wrap:wrap; }
     .tab-btn { padding:10px 20px; font-size:.85rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
                color:var(--dim); border-bottom:3px solid transparent; transition:all .2s; margin-bottom:-2px; background:none; }
     .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
     .tab-btn:hover { color:var(--text); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
-    .admin-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    .search-bar { width:100%; padding:9px 14px; border:1.5px solid var(--border); border-radius:var(--radius);
+                  background:var(--bg); color:var(--text); font-size:.9rem; margin-bottom:16px; box-sizing:border-box; }
+    .search-bar:focus { outline:none; border-color:var(--accent); }
+    .admin-table { width:100%; border-collapse:collapse; font-size:.875rem; }
     .admin-table th { text-align:left; padding:10px 12px; font-size:.72rem; font-weight:700; letter-spacing:.1em;
                       text-transform:uppercase; color:var(--dim); border-bottom:1.5px solid var(--border); background:var(--bg-alt); }
     .admin-table td { padding:12px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }
     .admin-table tr:hover td { background:var(--accent-l); }
-    .table-wrap { overflow-x:auto; background:var(--mid); border:1px solid var(--border); border-radius:var(--radius); }
     .table-wrap { overflow-x:auto; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); }
     .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.7rem; font-weight:700; text-transform:uppercase; border:1px solid; }
     .badge-open      { background:var(--success-l); color:var(--success); border-color:#bbf7d0; }
     .badge-assigned  { background:var(--blue-l);    color:var(--blue);    border-color:#bfdbfe; }
     .badge-completed { background:var(--warn-l);    color:var(--warn);    border-color:#fde68a; }
     .badge-cancelled { background:var(--danger-l);  color:var(--danger);  border-color:#fecaca; }
+    .badge-paid      { background:var(--success-l); color:var(--success); border-color:#bbf7d0; }
+    .badge-pending   { background:var(--warn-l);    color:var(--warn);    border-color:#fde68a; }
+    .badge-failed    { background:var(--danger-l);  color:var(--danger);  border-color:#fecaca; }
+    .badge-transferred { background:var(--blue-l);  color:var(--blue);    border-color:#bfdbfe; }
+    .mono { font-family:monospace; font-size:.78rem; }
+    .btn-gap { display:flex; gap:6px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
-  <header class="nav">
-    <a href="/" class="nav__logo">Campus<span>Hands</span></a>
-    <span style="font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)">Admin Panel</span>
-    <button class="btn btn--outline btn--sm" id="logoutAdmin">Exit</button>
-  </header>
 
-  <div class="admin-wrap">
-    <div class="admin-header">
-      <h1 class="admin-title">Admin <span>Dashboard</span></h1>
-      <div id="lastRefresh" style="font-size:.78rem;color:var(--dim)"></div>
-    </div>
-
-    <div class="stat-grid" id="statGrid">
-      <div class="stat-card"><div class="stat-card__num">…</div><div class="stat-card__label">Students</div></div>
-    </div>
-
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="students">Students</button>
-      <button class="tab-btn" data-tab="tasks">Tasks</button>
-      <button class="tab-btn" data-tab="ratings">Ratings</button>
-    </div>
-
-    <div class="tab-panel active" id="tab-students">
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead><tr>
-            <th>Name</th><th>Email</th><th>Rating</th><th>Applications</th>
-            <th>Completed</th><th>Joined</th><th></th>
-          </tr></thead>
-          <tbody id="usersBody"><tr><td colspan="7" class="loading-state">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="tab-panel" id="tab-tasks">
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead><tr>
-            <th>Title</th><th>Category</th><th>Pay</th><th>City</th>
-            <th>Status</th><th>Poster</th><th>ID Info</th><th>Apps</th><th>Date</th><th></th>
-          </tr></thead>
-          <tbody id="tasksBody"><tr><td colspan="10" class="loading-state">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="tab-panel" id="tab-ratings">
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead><tr>
-            <th>Task</th><th>Student</th><th>Rated By</th><th>Stars</th><th>Comment</th><th>Date</th>
-          </tr></thead>
-          <tbody id="ratingsBody"><tr><td colspan="6" class="loading-state">Loading…</td></tr></tbody>
-        </table>
-      </div>
+  <!-- ── Login screen ── -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <h1>Admin <span>Access</span></h1>
+      <p>Campus Hands administration panel</p>
+      <input type="password" id="secretInput" placeholder="Admin secret" autocomplete="current-password" />
+      <div class="login-error" id="loginError"></div>
+      <button class="btn btn--primary" id="signInBtn" style="width:100%">Sign In</button>
     </div>
   </div>
 
-  <script>
-    const KEY = sessionStorage.getItem('ch_admin_key') ||
-                new URLSearchParams(location.search).get('key');
+  <!-- ── Dashboard ── -->
+  <div id="dashboard" style="display:none">
+    <header class="nav">
+      <a href="/" class="nav__logo">Campus<span>Hands</span></a>
+      <span style="font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)">Admin Panel</span>
+      <button class="btn btn--outline btn--sm" id="logoutAdmin">Exit</button>
+    </header>
 
-    if (!KEY) { location.href = '/login.html'; }
-    else { sessionStorage.setItem('ch_admin_key', KEY); history.replaceState({}, '', '/admin.html'); }
+    <div class="admin-wrap">
+      <div class="admin-header">
+        <h1 class="admin-title">Admin <span>Dashboard</span></h1>
+        <div id="lastRefresh" style="font-size:.78rem;color:var(--dim)"></div>
+      </div>
+
+      <div class="stat-grid" id="statGrid">
+        <div class="stat-card"><div class="stat-card__num">…</div><div class="stat-card__label">Students</div></div>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="students">Students</button>
+        <button class="tab-btn" data-tab="tasks">Tasks</button>
+        <button class="tab-btn" data-tab="ratings">Ratings</button>
+        <button class="tab-btn" data-tab="transactions">Transactions</button>
+        <button class="tab-btn" data-tab="pending-payouts">Pending Payouts</button>
+      </div>
+
+      <!-- Students -->
+      <div class="tab-panel active" id="tab-students">
+        <input class="search-bar" type="text" placeholder="Search students…" data-search="usersBody" />
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Rating</th><th>Applications</th>
+              <th>Completed</th><th>Joined</th><th></th>
+            </tr></thead>
+            <tbody id="usersBody"><tr><td colspan="7" class="loading-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div class="tab-panel" id="tab-tasks">
+        <input class="search-bar" type="text" placeholder="Search tasks…" data-search="tasksBody" />
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr>
+              <th>Title</th><th>Category</th><th>Pay</th><th>City</th>
+              <th>Status</th><th>Poster</th><th>ID Info</th><th>Apps</th><th>Date</th><th></th>
+            </tr></thead>
+            <tbody id="tasksBody"><tr><td colspan="10" class="loading-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ratings -->
+      <div class="tab-panel" id="tab-ratings">
+        <input class="search-bar" type="text" placeholder="Search ratings…" data-search="ratingsBody" />
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr>
+              <th>Task</th><th>Student</th><th>Rated By</th><th>Stars</th><th>Comment</th><th>Date</th>
+            </tr></thead>
+            <tbody id="ratingsBody"><tr><td colspan="6" class="loading-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Transactions -->
+      <div class="tab-panel" id="tab-transactions">
+        <input class="search-bar" type="text" placeholder="Search transactions…" data-search="txBody" />
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr>
+              <th>Job</th><th>Poster</th><th>Student</th><th>Charged</th>
+              <th>Fee</th><th>Payout</th><th>Pay Status</th><th>Payout Status</th>
+              <th>Intent ID</th><th>Date</th>
+            </tr></thead>
+            <tbody id="txBody"><tr><td colspan="10" class="loading-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pending Payouts -->
+      <div class="tab-panel" id="tab-pending-payouts">
+        <input class="search-bar" type="text" placeholder="Search pending payouts…" data-search="payoutsBody" />
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr>
+              <th>Student</th><th>Email</th><th>Transactions</th><th>Amount Owed</th><th>Joined</th><th></th>
+            </tr></thead>
+            <tbody id="payoutsBody"><tr><td colspan="6" class="loading-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /admin-wrap -->
+  </div><!-- /dashboard -->
+
+
+  <script>
+    // ── Auth state ───────────────────────────────────────────────────────────
+    const TOKEN_KEY = 'ch_admin_jwt';
+    let adminToken  = sessionStorage.getItem(TOKEN_KEY);
+    let logoutTimer = null;
 
     function escHtml(s) {
-      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
-    function fmt(d) { return d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'; }
+    function fmt(d) {
+      return d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    }
+    function truncate(s, n) {
+      s = String(s || '');
+      return s.length > n ? s.slice(0, n) + '…' : s;
+    }
 
-    async function api(path, method = 'GET') {
-      const r = await fetch('/api/admin' + path, {
-        method, headers: { 'x-admin-key': KEY }
-      });
+    // ── Show/hide screens ────────────────────────────────────────────────────
+    function showDashboard() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display   = 'block';
+      // Auto-logout after 4 hours (matches JWT expiry)
+      if (logoutTimer) clearTimeout(logoutTimer);
+      logoutTimer = setTimeout(doLogout, 4 * 60 * 60 * 1000);
+    }
+    function showLogin(msg) {
+      document.getElementById('dashboard').style.display   = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      if (msg) document.getElementById('loginError').textContent = msg;
+    }
+    function doLogout() {
+      sessionStorage.removeItem(TOKEN_KEY);
+      adminToken = null;
+      showLogin('Session expired. Please sign in again.');
+    }
+
+    // ── API helper ───────────────────────────────────────────────────────────
+    async function api(path, method = 'GET', body) {
+      const opts = {
+        method,
+        headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+      };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch('/api/admin' + path, opts);
       const d = await r.json();
+      if (r.status === 401) { doLogout(); throw new Error('Unauthorized'); }
       if (!r.ok) throw new Error(d.error || 'Error');
       return d;
     }
 
+    // ── Login form ───────────────────────────────────────────────────────────
+    async function handleSignIn() {
+      const secret = document.getElementById('secretInput').value.trim();
+      const errEl  = document.getElementById('loginError');
+      errEl.textContent = '';
+      if (!secret) { errEl.textContent = 'Please enter the admin secret.'; return; }
+
+      const btn = document.getElementById('signInBtn');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const r = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secret }),
+        });
+        const d = await r.json();
+        if (!r.ok) { errEl.textContent = d.error || 'Login failed.'; return; }
+        adminToken = d.token;
+        sessionStorage.setItem(TOKEN_KEY, adminToken);
+        showDashboard();
+        loadAll();
+      } catch (e) {
+        errEl.textContent = 'Network error. Please try again.';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Sign In';
+      }
+    }
+
+    document.getElementById('signInBtn').addEventListener('click', handleSignIn);
+    document.getElementById('secretInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleSignIn();
+    });
+    document.getElementById('logoutAdmin').addEventListener('click', () => {
+      doLogout();
+    });
+
+    // ── Stats ────────────────────────────────────────────────────────────────
     async function loadStats() {
       const s = await api('/stats');
       document.getElementById('statGrid').innerHTML = `
@@ -127,24 +265,31 @@
         <div class="stat-card"><div class="stat-card__num">${s.completedTasks}</div><div class="stat-card__label">Completed</div></div>
         <div class="stat-card"><div class="stat-card__num">${s.totalApps}</div><div class="stat-card__label">Applications</div></div>
         <div class="stat-card"><div class="stat-card__num">$${Number(s.totalPaid).toFixed(2)}</div><div class="stat-card__label">Paid Out</div></div>
+        <div class="stat-card"><div class="stat-card__num">$${Number(s.totalRevenue).toFixed(2)}</div><div class="stat-card__label">Revenue</div></div>
+        <div class="stat-card"><div class="stat-card__num">${s.pendingPayouts}</div><div class="stat-card__label">Pending Payouts</div></div>
       `;
-      document.getElementById('lastRefresh').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+      document.getElementById('lastRefresh').textContent = 'Updated: ' + new Date().toLocaleTimeString();
     }
 
+    // ── Users ────────────────────────────────────────────────────────────────
     async function loadUsers() {
       const { users } = await api('/users');
       document.getElementById('usersBody').innerHTML = users.length ? users.map(u => `
         <tr>
-          <td><strong>${escHtml(u.name)}</strong></td>
+          <td><strong>${escHtml(u.name)}</strong>${u.suspended ? ' <span title="Suspended">⛔</span>' : ''}</td>
           <td style="color:var(--text-mid)">${escHtml(u.email)}</td>
           <td style="color:#d97706">${u.avg_rating ? '★ ' + u.avg_rating + ' (' + u.rating_count + ')' : '—'}</td>
           <td>${u.app_count}</td>
           <td>${u.jobs_completed}</td>
           <td style="color:var(--dim)">${fmt(u.created_at)}</td>
           <td>
-            <button class="btn btn--danger btn--sm del-user" data-id="${escHtml(u.id)}" data-name="${escHtml(u.name)}">
-              Delete
-            </button>
+            <div class="btn-gap">
+              ${u.suspended
+                ? `<button class="btn btn--outline btn--sm unsuspend-user" data-id="${escHtml(u.id)}">Unsuspend</button>`
+                : `<button class="btn btn--sm" style="background:#b45309;color:#fff;border:none" data-id="${escHtml(u.id)}" data-name="${escHtml(u.name)}" class="suspend-user">Suspend</button>`
+              }
+              <button class="btn btn--danger btn--sm del-user" data-id="${escHtml(u.id)}" data-name="${escHtml(u.name)}">Delete</button>
+            </div>
           </td>
         </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No students yet.</td></tr>';
 
@@ -155,17 +300,34 @@
           loadUsers(); loadStats();
         });
       });
+      document.querySelectorAll('[data-id].btn--sm:not(.del-user):not(.unsuspend-user)').forEach(btn => {
+        if (btn.textContent.trim() === 'Suspend') {
+          btn.addEventListener('click', async () => {
+            if (!confirm(`Suspend "${btn.dataset.name}"?`)) return;
+            await api('/users/' + btn.dataset.id + '/suspend', 'PATCH');
+            loadUsers();
+          });
+        }
+      });
+      document.querySelectorAll('.unsuspend-user').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await api('/users/' + btn.dataset.id + '/unsuspend', 'PATCH');
+          loadUsers();
+        });
+      });
     }
 
+    // ── Tasks ────────────────────────────────────────────────────────────────
     async function loadTasks() {
       const { tasks } = await api('/tasks');
+      const token = adminToken;
       document.getElementById('tasksBody').innerHTML = tasks.length ? tasks.map(t => `
         <tr>
-          <td><strong>${escHtml(t.title)}</strong></td>
+          <td><strong>${escHtml(t.title)}</strong>${t.flagged ? ' <span title="${escHtml(t.flag_reason||'')}">🚩</span>' : ''}</td>
           <td style="color:var(--text-mid)">${escHtml(t.category)}</td>
           <td style="color:var(--accent);font-weight:700">$${Number(t.pay).toFixed(2)}</td>
           <td style="color:var(--text-mid)">${escHtml(t.city)}, ${escHtml(t.state)}</td>
-          <td><span class="badge badge-${t.status}">${t.status}</span></td>
+          <td><span class="badge badge-${t.status}">${escHtml(t.status)}</span></td>
           <td>
             <strong>${escHtml(t.poster_name)}</strong><br/>
             <span style="font-size:.75rem;color:var(--text-mid)">${escHtml(t.poster_email)}</span><br/>
@@ -174,14 +336,17 @@
           <td style="font-size:.78rem;color:var(--text-mid)">
             ${escHtml(t.poster_id_type||'')}<br/>${escHtml(t.poster_id_num||'')}<br/>
             DOB: ${escHtml(t.poster_dob||'')}<br/>${escHtml(t.poster_address||'')}
-            ${t.poster_id_photo ? `<br/><a href="/uploads/ids/${escHtml(t.poster_id_photo)}?key=${KEY}" target="_blank" style="color:var(--accent)">View ID Photo ↗</a>` : '<br/><span style="color:var(--danger)">No photo</span>'}
+            ${t.poster_id_photo
+              ? `<br/><a href="/uploads/ids/${escHtml(t.poster_id_photo)}?key=${encodeURIComponent(token)}" target="_blank" style="color:var(--accent)">View ID ↗</a>`
+              : '<br/><span style="color:var(--danger)">No photo</span>'}
           </td>
           <td>${t.app_count}</td>
           <td style="color:var(--dim)">${fmt(t.created_at)}</td>
           <td>
-            <button class="btn btn--danger btn--sm del-task" data-id="${escHtml(t.id)}" data-title="${escHtml(t.title)}">
-              Delete
-            </button>
+            <div class="btn-gap">
+              <button class="btn btn--sm flag-task" data-id="${escHtml(t.id)}" style="background:#92400e;color:#fff;border:none">Flag</button>
+              <button class="btn btn--danger btn--sm del-task" data-id="${escHtml(t.id)}" data-title="${escHtml(t.title)}">Delete</button>
+            </div>
           </td>
         </tr>`).join('') : '<tr><td colspan="10" class="empty-state">No tasks yet.</td></tr>';
 
@@ -192,8 +357,17 @@
           loadTasks(); loadStats();
         });
       });
+      document.querySelectorAll('.flag-task').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const reason = prompt('Enter flag reason:');
+          if (reason === null) return;
+          await api('/jobs/' + btn.dataset.id + '/flag', 'PATCH', { reason });
+          loadTasks();
+        });
+      });
     }
 
+    // ── Ratings ──────────────────────────────────────────────────────────────
     async function loadRatings() {
       const { ratings } = await api('/ratings');
       document.getElementById('ratingsBody').innerHTML = ratings.length ? ratings.map(r => `
@@ -201,36 +375,88 @@
           <td><strong>${escHtml(r.job_title)}</strong></td>
           <td>${escHtml(r.student_name)}</td>
           <td style="color:var(--text-mid)">${r.rated_by === 'poster' ? '👤 Poster' : '🎓 Student'}</td>
-          <td style="color:#d97706">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</td>
-          <td style="color:var(--text-mid);font-size:.85rem">${escHtml(r.comment||'—')}</td>
+          <td style="color:#d97706">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</td>
+          <td style="color:var(--text-mid);font-size:.85rem">${escHtml(r.comment || '—')}</td>
           <td style="color:var(--dim)">${fmt(r.created_at)}</td>
         </tr>`).join('') : '<tr><td colspan="6" class="empty-state">No ratings yet.</td></tr>';
     }
 
-    // Tabs
+    // ── Transactions ─────────────────────────────────────────────────────────
+    async function loadTransactions() {
+      const { transactions } = await api('/transactions');
+      document.getElementById('txBody').innerHTML = transactions.length ? transactions.map(t => `
+        <tr>
+          <td><strong>${escHtml(t.job_title)}</strong></td>
+          <td style="font-size:.82rem">${escHtml(t.poster_name)}<br/><span style="color:var(--dim)">${escHtml(t.poster_email)}</span></td>
+          <td style="font-size:.82rem">${escHtml(t.student_name)}<br/><span style="color:var(--dim)">${escHtml(t.student_email)}</span></td>
+          <td style="color:var(--accent);font-weight:700">$${Number(t.amount).toFixed(2)}</td>
+          <td>$${Number(t.platform_fee).toFixed(2)}</td>
+          <td style="color:var(--success)">$${Number(t.student_payout).toFixed(2)}</td>
+          <td><span class="badge badge-${t.status}">${escHtml(t.status)}</span></td>
+          <td><span class="badge badge-${t.payout_status}">${escHtml(t.payout_status)}</span></td>
+          <td><span class="mono" title="${escHtml(t.stripe_payment_intent||'')}">${truncate(t.stripe_payment_intent||'—', 20)}</span></td>
+          <td style="color:var(--dim)">${fmt(t.created_at)}</td>
+        </tr>`).join('') : '<tr><td colspan="10" class="empty-state">No transactions yet.</td></tr>';
+    }
+
+    // ── Pending Payouts ───────────────────────────────────────────────────────
+    async function loadPendingPayouts() {
+      const { payouts } = await api('/pending-payouts');
+      document.getElementById('payoutsBody').innerHTML = payouts.length ? payouts.map(p => `
+        <tr>
+          <td><strong>${escHtml(p.name)}</strong></td>
+          <td style="color:var(--text-mid)">${escHtml(p.email)}</td>
+          <td>${p.pending_tx_count}</td>
+          <td style="color:var(--accent);font-weight:700">$${Number(p.pending_amount).toFixed(2)}</td>
+          <td style="color:var(--dim)">${fmt(p.created_at)}</td>
+          <td>
+            <a class="btn btn--outline btn--sm" href="mailto:${escHtml(p.email)}?subject=Campus%20Hands%20Payout&body=Hi%20${encodeURIComponent(p.name)}%2C%0A%0AYour%20pending%20payout%20of%20%24${Number(p.pending_amount).toFixed(2)}%20is%20ready." target="_blank">Contact</a>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">No pending payouts.</td></tr>';
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    document.querySelectorAll('.search-bar').forEach(input => {
+      input.addEventListener('input', () => {
+        const q     = input.value.toLowerCase();
+        const tbody = document.getElementById(input.dataset.search);
+        if (!tbody) return;
+        Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+          row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      });
+    });
+
+    // ── Tabs ──────────────────────────────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        if (btn.dataset.tab === 'ratings') loadRatings();
+        const tab = btn.dataset.tab;
+        if (tab === 'ratings')         loadRatings();
+        if (tab === 'transactions')    loadTransactions();
+        if (tab === 'pending-payouts') loadPendingPayouts();
       });
     });
 
-    document.getElementById('logoutAdmin').addEventListener('click', () => {
-      sessionStorage.removeItem('ch_admin_key');
-      location.href = '/';
-    });
-
-    Promise.all([loadStats(), loadUsers(), loadTasks()]).catch(err => {
-      if (err.message === 'Unauthorized.') {
-        alert('Wrong admin code. Access denied.');
-        location.href = '/login.html';
-      } else {
-        alert('Failed to load admin data: ' + err.message);
+    // ── Load all on dashboard init ────────────────────────────────────────────
+    async function loadAll() {
+      try {
+        await Promise.all([loadStats(), loadUsers(), loadTasks()]);
+      } catch (err) {
+        if (err.message !== 'Unauthorized') alert('Failed to load admin data: ' + err.message);
       }
-    });
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    if (adminToken) {
+      showDashboard();
+      loadAll();
+    } else {
+      showLogin();
+    }
   </script>
 </body>
 </html>
