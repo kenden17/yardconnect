@@ -12,6 +12,12 @@ const { isStudentAgeValid } = require('../utils/ageCheck');
 
 const router = express.Router();
 
+// Fields excluded from session responses — never send these to the client
+function toSessionUser(user) {
+  const { password, verify_token, stripe_account_id, ...safe } = user;
+  return safe;
+}
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -28,7 +34,7 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail().withMessage('Valid email required.'),
   body('dob').notEmpty().withMessage('Date of birth is required.'),
   body('password')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters.')
+    .isLength({ min: 8, max: 72 }).withMessage('Password must be 8–72 characters.')
     .matches(/[A-Z]/).withMessage('Password must contain an uppercase letter.')
     .matches(/[0-9]/).withMessage('Password must contain a number.'),
 ], async (req, res) => {
@@ -82,7 +88,7 @@ router.post('/register', [
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     const { password: _pw, verify_token: _vt, ...safeUser } = user;
-    return res.status(201).json({ token, user: safeUser });
+    return res.status(201).json({ token, user: toSessionUser(user) });
   } catch (err) {
     console.error('Register error:', err);
     return res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -104,6 +110,8 @@ router.post('/login', loginLimiter, [
   const match = await bcrypt.compare(password, user.password);
   if (!match) return res.status(401).json({ error: 'Invalid email or password.' });
 
+  if (user.suspended) return res.status(403).json({ error: 'Your account has been suspended.' });
+
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
   res.cookie('token', token, {
@@ -113,8 +121,7 @@ router.post('/login', loginLimiter, [
     maxAge:   7 * 24 * 60 * 60 * 1000,
   });
 
-  const { password: _pw, verify_token: _vt, ...safeUser } = user;
-  return res.json({ token, user: safeUser });
+  return res.json({ token, user: toSessionUser(user) });
 });
 
 // ── POST /api/auth/logout ───────────────────────────────────
@@ -125,7 +132,9 @@ router.post('/logout', (req, res) => {
 
 // ── GET /api/auth/me ────────────────────────────────────────
 router.get('/me', require('../middleware/auth').requireAuth, (req, res) => {
-  return res.json({ user: req.user });
+  // Strip stripe_account_id — it has no use on the client and shouldn't be exposed
+  const { stripe_account_id, ...safeUser } = req.user;
+  return res.json({ user: safeUser });
 });
 
 module.exports = router;

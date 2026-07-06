@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { body, validationResult } = require('express-validator');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { requirePosterOtp } = require('../middleware/posterOtp');
 const { sendJobAssignedEmail } = require('../utils/email');
 const { getAge } = require('../utils/ageCheck');
 
@@ -77,7 +78,8 @@ router.get('/job/:jobId', (req, res) => {
 // ── PATCH /api/applications/:id/accept ─────────────────────
 router.patch('/:id/accept', [
   body('poster_email').isEmail().normalizeEmail(),
-], (req, res) => {
+  body('otp_code').trim().notEmpty().withMessage('Verification code required.'),
+], requirePosterOtp('accept'), (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
@@ -116,7 +118,8 @@ router.patch('/:id/accept', [
 // ── PATCH /api/applications/:id/reject ─────────────────────
 router.patch('/:id/reject', [
   body('poster_email').isEmail().normalizeEmail(),
-], (req, res) => {
+  body('otp_code').trim().notEmpty().withMessage('Verification code required.'),
+], requirePosterOtp('reject'), (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 

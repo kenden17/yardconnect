@@ -6,7 +6,12 @@ require('dotenv').config();
 
 const router = express.Router();
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'CVGhuH8E';
+// FATAL: no hardcoded fallback — admin panel must not be accessible without a real secret
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+if (!ADMIN_SECRET) {
+  console.error('❌  FATAL: ADMIN_SECRET is not set. Admin routes will be disabled.');
+  // Routes below will still mount but requireAdmin will always reject — safe fail.
+}
 
 // ── Simple in-memory rate limiter (no new packages) ─────────────────────────
 // Map: ip -> { count, resetAt }
@@ -43,6 +48,11 @@ router.use((req, res, next) => {
 // Accepts Authorization: Bearer <admin_jwt>  (primary)
 // Also still accepts x-admin-key header for backward compat (ID photo endpoint)
 function requireAdmin(req, res, next) {
+  // Reject immediately if ADMIN_SECRET was never configured
+  if (!ADMIN_SECRET) {
+    return res.status(503).json({ error: 'Admin panel is not configured on this server.' });
+  }
+
   // 1. Try JWT bearer token
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -69,11 +79,17 @@ function requireAdmin(req, res, next) {
 
 // ── POST /api/admin/login ────────────────────────────────────────────────────
 router.post('/login', (req, res) => {
+  // Reject immediately if ADMIN_SECRET was never configured
+  if (!ADMIN_SECRET) {
+    return res.status(503).json({ error: 'Admin panel is not configured on this server.' });
+  }
+
   const ip = req.ip;
 
-  // Check login-specific rate limit (5 per 15 min)
+  // Check login-specific rate limit (5 per 15 min) — return 429, not 401,
+  // so the client knows it's rate-limited rather than thinking credentials are wrong.
   if (checkRateLimit(loginAttempts, ip, LOGIN_LIMIT, LOGIN_WINDOW)) {
-    return res.status(401).json({ error: 'Invalid credentials.' });
+    return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
   }
 
   const { secret } = req.body;

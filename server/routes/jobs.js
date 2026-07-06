@@ -12,6 +12,7 @@ const { isPosterOldEnough } = require('../utils/ageCheck');
 const { validateZipState, validatePhone, validateIdNumber, validateEmailDomain, validateFullName } = require('../utils/validate');
 
 const router = express.Router();
+const { requirePosterOtp } = require('../middleware/posterOtp');
 
 // Stripe — used only in the release route for the actual payout transfer
 const STRIPE_KEY = (process.env.STRIPE_SECRET_KEY || '').trim();
@@ -185,9 +186,11 @@ router.post('/', (req, res, next) => {
 
     // ── Address ────────────────────────────────────────────
     if (!poster_address?.trim()) errors.push('Your home address is required.');
+    if (poster_address?.trim().length > 200) errors.push('Address must be 200 characters or less.');
 
     // ── DOB ────────────────────────────────────────────────
     if (!poster_dob?.trim()) errors.push('Date of birth is required.');
+    if (poster_dob?.trim().length > 20) errors.push('Invalid date of birth.');
 
     // ── ID type ────────────────────────────────────────────
     const validIdTypes = ["Driver's License", 'State ID', 'Passport'];
@@ -354,7 +357,8 @@ router.post('/:id/mark-complete', [
 // This is where the student actually gets paid via Stripe transfer.
 router.post('/:id/release', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
-], async (req, res) => {
+  body('otp_code').trim().notEmpty().withMessage('Verification code required.'),
+], requirePosterOtp('release'), async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
@@ -377,6 +381,13 @@ router.post('/:id/release', [
 
   if (!tx) return res.status(400).json({ error: 'No confirmed payment found for this task.' });
 
+  // Idempotent: if already transferred, skip Stripe and return success
+  if (tx.payout_status === 'transferred') {
+    return res.json({ message: 'Payment already released to the student. Both parties can now leave a rating.' });
+  }
+
+  // Derive payout cents from stored fee values to avoid floating-point drift.
+  // student_payout is stored as a precise value computed at intent creation time.
   const payoutCents = Math.round(tx.student_payout * 100);
 
   // Transfer to student if they have a connected Stripe account
@@ -386,13 +397,18 @@ router.post('/:id/release', [
       return res.status(503).json({ error: 'Stripe is not configured on this server.' });
     }
     try {
-      const transfer = await stripe.transfers.create({
-        amount:      payoutCents,
-        currency:    'usd',
-        destination: tx.student_stripe_account,
-        description: `Campus Hands payout: "${job.title}"`,
-        metadata:    { job_id: job.id, transaction_id: tx.id },
-      });
+      // Idempotency key prevents double-transfer if this endpoint is called twice
+      const idempotencyKey = `release-${tx.id}`;
+      const transfer = await stripe.transfers.create(
+        {
+          amount:      payoutCents,
+          currency:    'usd',
+          destination: tx.student_stripe_account,
+          description: `Campus Hands payout: "${job.title}"`,
+          metadata:    { job_id: job.id, transaction_id: tx.id },
+        },
+        { idempotencyKey }
+      );
       transferId = transfer.id;
     } catch (err) {
       console.error('Stripe transfer error:', err.message);

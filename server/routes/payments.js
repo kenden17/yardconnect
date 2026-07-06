@@ -4,6 +4,8 @@ const { v4: uuidv4 } = require('uuid');
 const { body, validationResult } = require('express-validator');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { requirePosterOtp } = require('../middleware/posterOtp');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const router = express.Router();
@@ -22,6 +24,15 @@ if (stripeKeyValid) {
 
 const PLATFORM_FEE = 0.05;
 
+// ── Tighter rate limits for payment endpoints ───────────────
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many payment attempts. Please wait and try again.' },
+});
+
 function requireStripe(req, res, next) {
   if (!stripe) {
     return res.status(503).json({
@@ -32,11 +43,12 @@ function requireStripe(req, res, next) {
 }
 
 // ── POST /api/payments/create-intent ───────────────────────
-// Poster pays — identified by poster_email, no account needed
-router.post('/create-intent', requireStripe, [
+// Poster pays — identified by poster_email, OTP-verified
+router.post('/create-intent', paymentLimiter, requireStripe, [
   body('job_id').trim().notEmpty(),
   body('poster_email').isEmail().normalizeEmail(),
-], async (req, res) => {
+  body('otp_code').trim().notEmpty().withMessage('Verification code required.'),
+], requirePosterOtp('payment'), async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
@@ -55,33 +67,72 @@ router.post('/create-intent', requireStripe, [
     return res.status(400).json({ error: 'Task must be assigned before payment.' });
   }
 
-  const existingTx = db.prepare("SELECT id FROM transactions WHERE job_id = ? AND status = 'paid'").get(job_id);
+  // Guard: reject if a paid transaction already exists for this job
+  const existingTx = db.prepare(
+    "SELECT id FROM transactions WHERE job_id = ? AND status = 'paid'"
+  ).get(job_id);
   if (existingTx) return res.status(400).json({ error: 'This task has already been paid.' });
+
+  // Guard: if a pending intent already exists, return its client secret rather
+  // than creating a second charge. This handles browser retries safely.
+  const pendingTx = db.prepare(
+    "SELECT * FROM transactions WHERE job_id = ? AND status = 'pending'"
+  ).get(job_id);
+  if (pendingTx) {
+    try {
+      const existing = await stripe.paymentIntents.retrieve(pendingTx.stripe_payment_intent);
+      // Only reuse intents that are still in a payable state
+      if (['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status)) {
+        return res.json({
+          clientSecret:   existing.client_secret,
+          publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+          amount:         job.pay,
+          platformFee:    job.pay * PLATFORM_FEE,
+          studentPayout:  job.pay * (1 - PLATFORM_FEE),
+          transactionId:  pendingTx.id,
+        });
+      }
+    } catch (_) {
+      // If retrieval fails, fall through and create a fresh intent
+    }
+  }
 
   const amountCents = Math.round(job.pay * 100);
   const feeCents    = Math.round(amountCents * PLATFORM_FEE);
   const payoutCents = amountCents - feeCents;
 
   try {
-    const intentParams = {
-      amount:               amountCents,
-      currency:             'usd',
-      payment_method_types: ['card'],
-      description:          `Campus Hands: "${job.title}"`,
-      // No transfer_data here — funds are held on the platform account.
-      // The actual payout to the student happens in /api/jobs/:id/release
-      // only after the poster confirms work is done.
-      metadata: { job_id, poster_email, student_id: job.student_id },
-    };
+    const idempotencyKey = `create-intent-${job_id}`;
 
-    const intent = await stripe.paymentIntents.create(intentParams);
+    const intent = await stripe.paymentIntents.create(
+      {
+        amount:               amountCents,
+        currency:             'usd',
+        payment_method_types: ['card'],
+        description:          `Campus Hands: "${job.title}"`,
+        // Funds are held on the platform account.
+        // The actual payout to the student happens in /api/jobs/:id/release
+        // only after the poster confirms work is done.
+        metadata: { job_id, poster_email, student_id: job.student_id },
+      },
+      { idempotencyKey }
+    );
 
     const txId = uuidv4();
     db.prepare(`
-      INSERT INTO transactions (id, job_id, student_id, amount, platform_fee, student_payout, stripe_payment_intent)
+      INSERT INTO transactions
+        (id, job_id, student_id, amount, platform_fee, student_payout, stripe_payment_intent)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(txId, job_id, job.student_id, job.pay,
-           job.pay * PLATFORM_FEE, job.pay * (1 - PLATFORM_FEE), intent.id);
+    `).run(
+      txId,
+      job_id,
+      job.student_id,
+      job.pay,
+      // Store pre-computed integer cents as the source of truth to avoid float drift
+      feeCents / 100,
+      payoutCents / 100,
+      intent.id
+    );
 
     // Mark job as pending_payment if not already
     db.prepare("UPDATE jobs SET status = 'pending_payment' WHERE id = ? AND status = 'assigned'")
@@ -91,8 +142,8 @@ router.post('/create-intent', requireStripe, [
       clientSecret:   intent.client_secret,
       publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       amount:         job.pay,
-      platformFee:    job.pay * PLATFORM_FEE,
-      studentPayout:  job.pay * (1 - PLATFORM_FEE),
+      platformFee:    feeCents / 100,
+      studentPayout:  payoutCents / 100,
       transactionId:  txId,
     });
   } catch (err) {
@@ -102,7 +153,9 @@ router.post('/create-intent', requireStripe, [
 });
 
 // ── POST /api/payments/confirm ─────────────────────────────
-router.post('/confirm', requireStripe, [
+// Called by the frontend after Stripe.js confirms the card payment.
+// We verify the intent status directly with Stripe — never trust the client.
+router.post('/confirm', paymentLimiter, requireStripe, [
   body('payment_intent_id').trim().notEmpty(),
   body('poster_email').isEmail().normalizeEmail(),
 ], async (req, res) => {
@@ -111,21 +164,44 @@ router.post('/confirm', requireStripe, [
 
   const { payment_intent_id, poster_email } = req.body;
 
+  // Look up the transaction first so we can return early if already confirmed
+  const tx = db.prepare(
+    'SELECT * FROM transactions WHERE stripe_payment_intent = ?'
+  ).get(payment_intent_id);
+  if (!tx) return res.status(404).json({ error: 'Transaction not found.' });
+
+  // Verify the poster owns this job
+  const job = db.prepare('SELECT poster_email FROM jobs WHERE id = ?').get(tx.job_id);
+  if (!job || job.poster_email !== poster_email) {
+    return res.status(403).json({ error: 'Email mismatch.' });
+  }
+
+  // Idempotent: if already confirmed, return success without hitting Stripe again
+  if (tx.status === 'paid') {
+    return res.json({ message: 'Payment already confirmed. Work can now begin!' });
+  }
+
+  if (tx.status === 'failed') {
+    return res.status(400).json({ error: 'This payment previously failed. Please start a new payment.' });
+  }
+
   try {
+    // Always verify the payment status directly with Stripe — never trust client input
     const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
     if (intent.status !== 'succeeded') {
       return res.status(400).json({ error: `Payment not completed (status: ${intent.status}).` });
     }
 
-    const tx = db.prepare('SELECT * FROM transactions WHERE stripe_payment_intent = ?').get(payment_intent_id);
-    if (!tx) return res.status(404).json({ error: 'Transaction not found.' });
+    // Atomic update: only mark paid if still pending (prevents webhook race)
+    const result = db.prepare(
+      "UPDATE transactions SET status = 'paid' WHERE id = ? AND status = 'pending'"
+    ).run(tx.id);
 
-    const job = db.prepare('SELECT poster_email FROM jobs WHERE id = ?').get(tx.job_id);
-    if (!job || job.poster_email !== poster_email) {
-      return res.status(403).json({ error: 'Email mismatch.' });
+    if (result.changes === 0) {
+      // Another process (webhook) already updated this — idempotent success
+      return res.json({ message: 'Payment confirmed. Work can now begin!' });
     }
 
-    db.prepare("UPDATE transactions SET status = 'paid' WHERE id = ?").run(tx.id);
     db.prepare("UPDATE jobs SET status = 'active' WHERE id = ?").run(tx.job_id);
 
     return res.json({ message: 'Payment confirmed. Work can now begin!' });
@@ -136,27 +212,53 @@ router.post('/confirm', requireStripe, [
 });
 
 // ── POST /api/payments/webhook ─────────────────────────────
+// Stripe sends signed events here. Raw body required for signature verification.
 router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) return res.sendStatus(200);
+
   let event;
   try {
     event = stripe.webhooks.constructEvent(
-      req.body, req.headers['stripe-signature'], process.env.STRIPE_WEBHOOK_SECRET
+      req.body,
+      req.headers['stripe-signature'],
+      process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === 'payment_intent.succeeded') {
-    const id = event.data.object.id;
-    db.prepare("UPDATE transactions SET status = 'paid' WHERE stripe_payment_intent = ?").run(id);
-    db.prepare(`UPDATE jobs SET status = 'active'
-                WHERE id = (SELECT job_id FROM transactions WHERE stripe_payment_intent = ?)`).run(id);
+    const intentId = event.data.object.id;
+    // Atomic update — only applies if not already marked paid (handles /confirm race)
+    const result = db.prepare(
+      "UPDATE transactions SET status = 'paid' WHERE stripe_payment_intent = ? AND status = 'pending'"
+    ).run(intentId);
+
+    if (result.changes > 0) {
+      db.prepare(`
+        UPDATE jobs SET status = 'active'
+        WHERE id = (SELECT job_id FROM transactions WHERE stripe_payment_intent = ?)
+      `).run(intentId);
+    }
   }
+
   if (event.type === 'payment_intent.payment_failed') {
-    db.prepare("UPDATE transactions SET status = 'failed' WHERE stripe_payment_intent = ?")
-      .run(event.data.object.id);
+    db.prepare(
+      "UPDATE transactions SET status = 'failed' WHERE stripe_payment_intent = ? AND status = 'pending'"
+    ).run(event.data.object.id);
   }
+
+  // Handle refunds initiated from the Stripe dashboard
+  if (event.type === 'charge.refunded') {
+    const intentId = event.data.object.payment_intent;
+    if (intentId) {
+      db.prepare(
+        "UPDATE transactions SET status = 'refunded' WHERE stripe_payment_intent = ? AND status = 'paid'"
+      ).run(intentId);
+    }
+  }
+
   return res.sendStatus(200);
 });
 
