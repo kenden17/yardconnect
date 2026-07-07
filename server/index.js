@@ -42,11 +42,13 @@ app.use(helmet({
 const allowedOrigin = process.env.APP_URL || 'http://localhost:3000';
 app.use(cors({
   origin: (origin, cb) => {
+    // No origin = same-origin request or curl — always allow
     if (!origin) return cb(null, true);
+    // Always allow the configured APP_URL
     if (origin === allowedOrigin) return cb(null, true);
-    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin))
-      return cb(null, true);
-    cb(new Error('Not allowed by CORS'));
+    // In development allow any localhost origin regardless of port
+    if (process.env.NODE_ENV !== 'production') return cb(null, true);
+    return cb(null, false);
   },
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
   credentials: true,
@@ -59,32 +61,27 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 
-// CSRF: verify Origin/Referer on all state-changing API requests
+// CSRF: verify Origin/Referer on state-changing API requests (production only)
 const ALLOWED_ORIGIN = process.env.APP_URL || 'http://localhost:3000';
 app.use('/api', (req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   if (req.path.startsWith('/payments/webhook')) return next();
+  // In development skip CSRF check entirely
+  if (process.env.NODE_ENV !== 'production') return next();
 
   const origin  = req.headers['origin'];
   const referer = req.headers['referer'];
 
   if (origin) {
     if (origin === ALLOWED_ORIGIN) return next();
-    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin))
-      return next();
     return res.status(403).json({ error: 'Forbidden.' });
   }
-
   if (referer) {
     try {
-      const refHost = new URL(referer).host;
-      if (refHost === new URL(ALLOWED_ORIGIN).host) return next();
-      if (process.env.NODE_ENV !== 'production' && /^localhost(:\d+)?$/.test(refHost))
-        return next();
+      if (new URL(referer).host === new URL(ALLOWED_ORIGIN).host) return next();
     } catch (_) {}
     return res.status(403).json({ error: 'Forbidden.' });
   }
-
   next();
 });
 
