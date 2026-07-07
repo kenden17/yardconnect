@@ -25,8 +25,13 @@
     </div>
   </header>
 
+  <!-- Mobile sidebar toggle -->
+  <button class="dash-mobile-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+
   <div class="dash-layout">
-    <aside class="dash-sidebar">
+    <aside class="dash-sidebar" id="dashSidebar">
       <div class="dash-sidebar__user">
         <div class="avatar" id="sideAvatar"></div>
         <div>
@@ -35,11 +40,28 @@
         </div>
       </div>
       <nav class="dash-sidebar__nav">
-        <button class="dash-nav-btn active" data-panel="overview">Overview</button>
-        <button class="dash-nav-btn" data-panel="applications">My Applications</button>
-        <button class="dash-nav-btn" data-panel="payments">Earnings</button>
-        <button class="dash-nav-btn" data-panel="settings">Settings</button>
+        <button class="dash-nav-btn active" data-panel="overview">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Overview
+        </button>
+        <button class="dash-nav-btn" data-panel="applications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          My Applications
+        </button>
+        <button class="dash-nav-btn" data-panel="payments">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Earnings
+        </button>
+        <button class="dash-nav-btn" data-panel="settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
       </nav>
+      <div class="dash-sidebar__footer">
+        <a href="/#tasks" class="btn btn--accent btn--sm" style="width:calc(100% - 40px);margin:0 20px;justify-content:center">
+          Browse Tasks →
+        </a>
+      </div>
     </aside>
 
     <main class="dash-main">
@@ -48,15 +70,13 @@
       <section class="dash-panel active" id="panel-overview">
         <h1 class="dash-title">Hey, <span id="welcomeName"></span> 👋</h1>
         <div class="overview-cards" id="overviewCards">
-          <div class="ov-card loading-state">Loading…</div>
+          <div class="ov-card skeleton-card"><div class="skeleton skeleton-line skeleton-line--md" style="height:32px;margin-bottom:8px"></div><div class="skeleton skeleton-line skeleton-line--sm"></div></div>
+          <div class="ov-card skeleton-card"><div class="skeleton skeleton-line skeleton-line--md" style="height:32px;margin-bottom:8px"></div><div class="skeleton skeleton-line skeleton-line--sm"></div></div>
+          <div class="ov-card skeleton-card"><div class="skeleton skeleton-line skeleton-line--md" style="height:32px;margin-bottom:8px"></div><div class="skeleton skeleton-line skeleton-line--sm"></div></div>
+          <div class="ov-card skeleton-card"><div class="skeleton skeleton-line skeleton-line--md" style="height:32px;margin-bottom:8px"></div><div class="skeleton skeleton-line skeleton-line--sm"></div></div>
         </div>
-        <div class="recent-jobs">
-          <h2 class="dash-subtitle">Recent Applications</h2>
-          <div id="recentJobs"><div class="loading-state">Loading…</div></div>
-        </div>
-        <div style="margin-top:24px">
-          <a href="/#tasks" class="btn btn--accent">Browse Open Tasks →</a>
-        </div>
+        <h2 class="dash-subtitle" style="margin-top:32px">Recent Applications</h2>
+        <div id="recentJobs"><div class="loading-state">Loading…</div></div>
       </section>
 
       <!-- APPLICATIONS -->
@@ -69,15 +89,13 @@
       <section class="dash-panel" id="panel-payments">
         <h1 class="dash-title">Earnings</h1>
         <div id="stripeOnboardSection" class="hidden">
-          <div class="info-card" style="border:2px solid #f59e0b;background:#fef3c7">
-            <h3 style="color:#92400e">⚠️ You won't get paid without a payout account</h3>
-            <p style="color:#78350f">
-              Connect a bank account so Campus Hands can send you money when a poster releases payment.
-              Without this, your earnings have nowhere to go. Takes about 2 minutes — powered by Stripe.
-            </p>
-            <button class="btn btn--accent" id="stripeOnboardBtn" style="margin-top:12px;background:#f59e0b;border-color:#f59e0b">
-              Set Up Payouts Now →
-            </button>
+          <div class="dash-alert dash-alert--warn">
+            <div class="dash-alert__icon">⚠️</div>
+            <div class="dash-alert__body">
+              <strong>You won't get paid without a payout account.</strong>
+              <span>Connect a bank account so Campus Hands can send you money when a poster releases payment. Takes about 2 minutes.</span>
+            </div>
+            <button class="btn btn--sm dash-alert__btn" id="stripeOnboardBtn">Set Up Payouts →</button>
           </div>
         </div>
         <h2 class="dash-subtitle">Transaction History</h2>
@@ -86,14 +104,25 @@
 
       <!-- SETTINGS -->
       <section class="dash-panel" id="panel-settings">
-        <h1 class="dash-title">Account Settings</h1>
-        <div class="info-card">
-          <h3 id="settingsName"></h3>
-          <p id="settingsEmail" class="text-dim"></p>
-          <p class="text-dim">Student account</p>
+        <h1 class="dash-title">Settings</h1>
+        <div class="settings-card">
+          <div class="settings-card__avatar" id="settingsAvatar"></div>
+          <div>
+            <div class="settings-card__name" id="settingsName"></div>
+            <div class="settings-card__email" id="settingsEmail"></div>
+            <span class="job-card__status status-assigned" style="margin-top:8px;display:inline-block">Student</span>
+          </div>
         </div>
-        <p class="text-dim" style="margin-top:16px">More settings coming soon.</p>
+        <div class="info-card" style="margin-top:16px">
+          <h3 style="margin-bottom:8px">Account Info</h3>
+          <p class="text-dim" style="font-size:.88rem">Registered with your school email. To change your email or password, contact support.</p>
+        </div>
+        <div class="info-card" style="margin-top:12px" id="payoutSettingsCard">
+          <h3 style="margin-bottom:8px">Payout Account</h3>
+          <p class="text-dim" id="payoutStatus" style="font-size:.88rem">Checking…</p>
+        </div>
       </section>
+
     </main>
   </div>
 
