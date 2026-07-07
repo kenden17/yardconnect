@@ -61,30 +61,6 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 
-// CSRF: verify Origin/Referer on state-changing API requests (production only)
-const ALLOWED_ORIGIN = process.env.APP_URL || 'http://localhost:3000';
-app.use('/api', (req, res, next) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  if (req.path.startsWith('/payments/webhook')) return next();
-  // In development skip CSRF check entirely
-  if (process.env.NODE_ENV !== 'production') return next();
-
-  const origin  = req.headers['origin'];
-  const referer = req.headers['referer'];
-
-  if (origin) {
-    if (origin === ALLOWED_ORIGIN) return next();
-    return res.status(403).json({ error: 'Forbidden.' });
-  }
-  if (referer) {
-    try {
-      if (new URL(referer).host === new URL(ALLOWED_ORIGIN).host) return next();
-    } catch (_) {}
-    return res.status(403).json({ error: 'Forbidden.' });
-  }
-  next();
-});
-
 app.use('/api/', rateLimit({
   windowMs: 15 * 60 * 1000, max: 300,
   standardHeaders: true, legacyHeaders: false,
