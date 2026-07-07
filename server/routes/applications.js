@@ -35,8 +35,8 @@ router.post('/', requireAuth, [
   ).get(job_id, req.user.id);
   if (existing) return res.status(409).json({ error: 'You already applied to this task.' });
 
-  // 18+ check for restricted categories (production only)
-  if (process.env.NODE_ENV === 'production' && RESTRICTED_18_PLUS.includes(job.category)) {
+  // 18+ check for restricted categories
+  if (process.env.DISABLE_SAFETY_CHECKS !== 'true' && RESTRICTED_18_PLUS.includes(job.category)) {
     const student = db.prepare('SELECT dob FROM users WHERE id = ?').get(req.user.id);
     if (!student || getAge(student.dob) < 18) {
       return res.status(400).json({

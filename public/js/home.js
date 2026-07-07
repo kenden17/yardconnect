@@ -204,8 +204,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Email
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Valid email address is required.');
-    const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','me.com','aol.com','protonmail.com','live.com'];
-    // Note: we don't block free domains for posters — they just need a real email
 
     // Phone: 10 digits
     const phoneDigits = phone.replace(/\D/g, '');

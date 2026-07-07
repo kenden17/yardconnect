@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Payout warning banner ────────────────────────────────
   // Show a persistent top-of-page warning if no Stripe account
-  if (!user.stripe_account_id) {
+  if (!user.has_stripe) {
     const banner = document.createElement('div');
     banner.id = 'payoutWarningBanner';
     banner.style.cssText = [
@@ -161,10 +161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!selectedStars) return;
       submitBtn.disabled    = true;
       submitBtn.textContent = 'Submitting…';
-      const token   = localStorage.getItem('ch_token');
       const comment = modal.querySelector('#ratingComment').value.trim();
       try {
-        await API.rateJob(jobId, { stars: selectedStars, comment, student_token: token });
+        await API.rateJob(jobId, { stars: selectedStars, comment });
         modal.remove();
         showAlert('⭐ Rating submitted. Thanks!');
         loadMyJobs();
@@ -273,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ✅ You've been accepted! The poster will contact you to coordinate.
               ${j.address ? `<br/><span style="color:var(--text-mid)">📍 ${escHtml(j.address)}</span>` : ''}
             </div>
-            ${!user.stripe_account_id ? `
+            ${!user.has_stripe ? `
             <div style="margin-top:6px;padding:10px;background:#fef3c7;border:1px solid #f59e0b;
                  border-radius:4px;font-size:.84rem;color:#92400e">
               ⚠️ <strong>Set up your payout account before work begins</strong> or you won't receive payment.
@@ -286,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                  border:1px solid #fde68a;border-radius:4px;font-size:.85rem;color:var(--warn)">
               ⏳ The poster is processing payment. Work begins once payment is confirmed.
             </div>
-            ${!user.stripe_account_id ? `
+            ${!user.has_stripe ? `
             <div style="margin-top:6px;padding:10px;background:#fef3c7;border:1px solid #f59e0b;
                  border-radius:4px;font-size:.84rem;color:#92400e">
               ⚠️ <strong>No payout account found.</strong> Set one up now — payment is being processed and
@@ -301,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               🚀 Work is in progress! Complete the task, then the poster will release payment.
               ${j.address ? `<br/><span style="color:var(--dim)">📍 ${escHtml(j.address)}</span>` : ''}
             </div>
-            ${!user.stripe_account_id ? `
+            ${!user.has_stripe ? `
             <div style="margin-top:6px;padding:10px;background:#fef3c7;border:1px solid #f59e0b;
                  border-radius:4px;font-size:.84rem;color:#92400e">
               ⚠️ <strong>You still don't have a payout account.</strong> Set one up before the poster
@@ -341,7 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const onboardSection = document.getElementById('stripeOnboardSection');
     const txList         = document.getElementById('txList');
 
-    if (!user.stripe_account_id) {
+    if (!user.has_stripe) {
       onboardSection.classList.remove('hidden');
     }
 

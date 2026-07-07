@@ -210,7 +210,7 @@ router.post('/', (req, res, next) => {
 
     // ── Agreements ─────────────────────────────────────────
     if (poster_agreed !== 'true') errors.push('You must agree to the terms of responsibility.');
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.DISABLE_SAFETY_CHECKS !== 'true') {
       if (!poster_agreed_guidelines || poster_agreed_guidelines === 'false') {
         errors.push('You must agree to the Community Guidelines.');
       }
@@ -381,23 +381,18 @@ router.post('/:id/release', [
 
   if (!tx) return res.status(400).json({ error: 'No confirmed payment found for this task.' });
 
-  // Idempotent: if already transferred, skip Stripe and return success
   if (tx.payout_status === 'transferred') {
     return res.json({ message: 'Payment already released to the student. Both parties can now leave a rating.' });
   }
 
-  // Derive payout cents from stored fee values to avoid floating-point drift.
-  // student_payout is stored as a precise value computed at intent creation time.
   const payoutCents = Math.round(tx.student_payout * 100);
 
-  // Transfer to student if they have a connected Stripe account
   let transferId = null;
   if (tx.student_stripe_account) {
     if (!stripe) {
       return res.status(503).json({ error: 'Stripe is not configured on this server.' });
     }
     try {
-      // Idempotency key prevents double-transfer if this endpoint is called twice
       const idempotencyKey = `release-${tx.id}`;
       const transfer = await stripe.transfers.create(
         {
@@ -412,13 +407,9 @@ router.post('/:id/release', [
       transferId = transfer.id;
     } catch (err) {
       console.error('Stripe transfer error:', err.message);
-      return res.status(500).json({
-        error: 'Could not transfer funds to student: ' + err.message,
-      });
+      return res.status(500).json({ error: 'Could not transfer funds to student. Please try again.' });
     }
   }
-  // If student has no Stripe account, funds remain on the platform —
-  // admin can manually disburse or student needs to set up payouts.
 
   db.prepare(`
     UPDATE transactions
@@ -441,7 +432,6 @@ router.post('/:id/rate', [
   body('stars').isInt({ min: 1, max: 5 }).withMessage('Stars must be 1–5.'),
   body('comment').optional().trim().isLength({ max: 500 }),
   body('poster_email').optional().isEmail().normalizeEmail(),
-  body('student_token').optional().trim(),
 ], (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
@@ -453,7 +443,7 @@ router.post('/:id/rate', [
   }
   if (!job.student_id) return res.status(400).json({ error: 'No student assigned to this task.' });
 
-  const { stars, comment, poster_email, student_token } = req.body;
+  const { stars, comment, poster_email } = req.body;
   let rated_by = null;
 
   if (poster_email) {
@@ -461,18 +451,21 @@ router.post('/:id/rate', [
       return res.status(403).json({ error: 'Email does not match this task.' });
     }
     rated_by = 'poster';
-  } else if (student_token) {
+  } else {
+    // Student rating — must supply a valid Bearer token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(400).json({ error: 'poster_email or student auth token required.' });
+    }
     try {
-      const payload = jwt.verify(student_token, process.env.JWT_SECRET);
+      const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
       if (payload.userId !== job.student_id) {
         return res.status(403).json({ error: 'You are not the assigned student for this task.' });
       }
       rated_by = 'student';
     } catch {
-      return res.status(401).json({ error: 'Invalid student token.' });
+      return res.status(401).json({ error: 'Invalid or expired token.' });
     }
-  } else {
-    return res.status(400).json({ error: 'poster_email or student_token required.' });
   }
 
   const existing = db.prepare('SELECT id FROM ratings WHERE job_id = ? AND rated_by = ?')

@@ -170,10 +170,7 @@
 
 
   <script>
-    // ── Auth state ───────────────────────────────────────────────────────────
-    const TOKEN_KEY = 'ch_admin_jwt';
-    let adminToken  = sessionStorage.getItem(TOKEN_KEY);
-    let logoutTimer = null;
+    let adminSecret = sessionStorage.getItem('ch_admin');
 
     function escHtml(s) {
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -186,13 +183,9 @@
       return s.length > n ? s.slice(0, n) + '…' : s;
     }
 
-    // ── Show/hide screens ────────────────────────────────────────────────────
     function showDashboard() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('dashboard').style.display   = 'block';
-      // Auto-logout after 4 hours (matches JWT expiry)
-      if (logoutTimer) clearTimeout(logoutTimer);
-      logoutTimer = setTimeout(doLogout, 4 * 60 * 60 * 1000);
     }
     function showLogin(msg) {
       document.getElementById('dashboard').style.display   = 'none';
@@ -200,16 +193,15 @@
       if (msg) document.getElementById('loginError').textContent = msg;
     }
     function doLogout() {
-      sessionStorage.removeItem(TOKEN_KEY);
-      adminToken = null;
-      showLogin('Session expired. Please sign in again.');
+      sessionStorage.removeItem('ch_admin');
+      adminSecret = null;
+      showLogin('');
     }
 
-    // ── API helper ───────────────────────────────────────────────────────────
     async function api(path, method = 'GET', body) {
       const opts = {
         method,
-        headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+        headers: { 'x-admin-secret': adminSecret, 'Content-Type': 'application/json' },
       };
       if (body !== undefined) opts.body = JSON.stringify(body);
       const r = await fetch('/api/admin' + path, opts);
@@ -219,28 +211,24 @@
       return d;
     }
 
-    // ── Login form ───────────────────────────────────────────────────────────
     async function handleSignIn() {
       const secret = document.getElementById('secretInput').value.trim();
       const errEl  = document.getElementById('loginError');
       errEl.textContent = '';
-      if (!secret) { errEl.textContent = 'Please enter the admin secret.'; return; }
+      if (!secret) { errEl.textContent = 'Enter your admin secret.'; return; }
 
       const btn = document.getElementById('signInBtn');
       btn.disabled = true; btn.textContent = 'Signing in…';
       try {
-        const r = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ secret }),
+        const r = await fetch('/api/admin/stats', {
+          headers: { 'x-admin-secret': secret },
         });
-        const d = await r.json();
-        if (!r.ok) { errEl.textContent = d.error || 'Login failed.'; return; }
-        adminToken = d.token;
-        sessionStorage.setItem(TOKEN_KEY, adminToken);
+        if (!r.ok) { errEl.textContent = 'Invalid secret.'; return; }
+        adminSecret = secret;
+        sessionStorage.setItem('ch_admin', secret);
         showDashboard();
         loadAll();
-      } catch (e) {
+      } catch {
         errEl.textContent = 'Network error. Please try again.';
       } finally {
         btn.disabled = false; btn.textContent = 'Sign In';
@@ -251,9 +239,7 @@
     document.getElementById('secretInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') handleSignIn();
     });
-    document.getElementById('logoutAdmin').addEventListener('click', () => {
-      doLogout();
-    });
+    document.getElementById('logoutAdmin').addEventListener('click', doLogout);
 
     // ── Stats ────────────────────────────────────────────────────────────────
     async function loadStats() {
@@ -286,7 +272,7 @@
             <div class="btn-gap">
               ${u.suspended
                 ? `<button class="btn btn--outline btn--sm unsuspend-user" data-id="${escHtml(u.id)}">Unsuspend</button>`
-                : `<button class="btn btn--sm" style="background:#b45309;color:#fff;border:none" data-id="${escHtml(u.id)}" data-name="${escHtml(u.name)}" class="suspend-user">Suspend</button>`
+                : `<button class="btn btn--sm suspend-user" style="background:#b45309;color:#fff;border:none" data-id="${escHtml(u.id)}" data-name="${escHtml(u.name)}">Suspend</button>`
               }
               <button class="btn btn--danger btn--sm del-user" data-id="${escHtml(u.id)}" data-name="${escHtml(u.name)}">Delete</button>
             </div>
@@ -300,14 +286,12 @@
           loadUsers(); loadStats();
         });
       });
-      document.querySelectorAll('[data-id].btn--sm:not(.del-user):not(.unsuspend-user)').forEach(btn => {
-        if (btn.textContent.trim() === 'Suspend') {
-          btn.addEventListener('click', async () => {
-            if (!confirm(`Suspend "${btn.dataset.name}"?`)) return;
-            await api('/users/' + btn.dataset.id + '/suspend', 'PATCH');
-            loadUsers();
-          });
-        }
+      document.querySelectorAll('.suspend-user').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm(`Suspend "${btn.dataset.name}"?`)) return;
+          await api('/users/' + btn.dataset.id + '/suspend', 'PATCH');
+          loadUsers();
+        });
       });
       document.querySelectorAll('.unsuspend-user').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -320,7 +304,6 @@
     // ── Tasks ────────────────────────────────────────────────────────────────
     async function loadTasks() {
       const { tasks } = await api('/tasks');
-      const token = adminToken;
       document.getElementById('tasksBody').innerHTML = tasks.length ? tasks.map(t => `
         <tr>
           <td><strong>${escHtml(t.title)}</strong>${t.flagged ? ' <span title="${escHtml(t.flag_reason||'')}">🚩</span>' : ''}</td>
@@ -337,7 +320,7 @@
             ${escHtml(t.poster_id_type||'')}<br/>${escHtml(t.poster_id_num||'')}<br/>
             DOB: ${escHtml(t.poster_dob||'')}<br/>${escHtml(t.poster_address||'')}
             ${t.poster_id_photo
-              ? `<br/><a href="/uploads/ids/${escHtml(t.poster_id_photo)}?key=${encodeURIComponent(token)}" target="_blank" style="color:var(--accent)">View ID ↗</a>`
+              ? `<br/><button class="btn btn--outline btn--sm view-id-btn" data-file="${escHtml(t.poster_id_photo)}" style="margin-top:4px;font-size:.72rem">View ID ↗</button>`
               : '<br/><span style="color:var(--danger)">No photo</span>'}
           </td>
           <td>${t.app_count}</td>
@@ -363,6 +346,22 @@
           if (reason === null) return;
           await api('/jobs/' + btn.dataset.id + '/flag', 'PATCH', { reason });
           loadTasks();
+        });
+      });
+
+      document.querySelectorAll('.view-id-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            const res = await fetch('/api/admin/id-photo/' + encodeURIComponent(btn.dataset.file), {
+              headers: { 'x-admin-secret': adminSecret },
+            });
+            if (!res.ok) { alert('Could not load photo.'); return; }
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+          } catch {
+            alert('Could not load photo.');
+          }
         });
       });
     }
@@ -451,7 +450,7 @@
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
-    if (adminToken) {
+    if (adminSecret) {
       showDashboard();
       loadAll();
     } else {

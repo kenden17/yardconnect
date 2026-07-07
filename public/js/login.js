@@ -1,9 +1,21 @@
 // public/js/login.js
-document.addEventListener('DOMContentLoaded', () => {
-  // Redirect already-logged-in users straight to dashboard
+document.addEventListener('DOMContentLoaded', async () => {
+  // Verify token with server before redirecting — avoids bouncing when token is expired
   if (Auth.isLoggedIn()) {
-    window.location.href = '/dashboard.html';
-    return;
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('ch_token') },
+        credentials: 'include',
+      });
+      if (res.ok) {
+        window.location.href = '/dashboard.html';
+        return;
+      } else {
+        Auth.clearSession();
+      }
+    } catch (_) {
+      // Network error — fall through to show the login form
+    }
   }
 
   const form      = document.getElementById('loginForm');

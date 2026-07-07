@@ -12,10 +12,9 @@ const { isStudentAgeValid } = require('../utils/ageCheck');
 
 const router = express.Router();
 
-// Fields excluded from session responses — never send these to the client
 function toSessionUser(user) {
   const { password, verify_token, stripe_account_id, ...safe } = user;
-  return safe;
+  return { ...safe, has_stripe: !!stripe_account_id };
 }
 
 const loginLimiter = rateLimit({
@@ -41,7 +40,7 @@ router.post('/register', [
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
-  const { name, email, dob, password, agreed_to_guidelines } = req.body;
+  const { name, email, dob, password } = req.body;
 
   // School email check
   if (!isSchoolEmail(email)) {
@@ -50,8 +49,8 @@ router.post('/register', [
     });
   }
 
-  // Community guidelines check (production only)
-  if (process.env.NODE_ENV === 'production') {
+  // Community guidelines check
+  if (process.env.DISABLE_SAFETY_CHECKS !== 'true') {
     const agreedToGuidelines = req.body.agreed_to_guidelines;
     if (!agreedToGuidelines || agreedToGuidelines === false || agreedToGuidelines === 'false') {
       return res.status(400).json({ error: 'You must agree to the Community Guidelines.' });
@@ -87,7 +86,6 @@ router.post('/register', [
     });
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-    const { password: _pw, verify_token: _vt, ...safeUser } = user;
     return res.status(201).json({ token, user: toSessionUser(user) });
   } catch (err) {
     console.error('Register error:', err);
@@ -132,9 +130,8 @@ router.post('/logout', (req, res) => {
 
 // ── GET /api/auth/me ────────────────────────────────────────
 router.get('/me', require('../middleware/auth').requireAuth, (req, res) => {
-  // Strip stripe_account_id — it has no use on the client and shouldn't be exposed
   const { stripe_account_id, ...safeUser } = req.user;
-  return res.json({ user: safeUser });
+  return res.json({ user: { ...safeUser, has_stripe: !!stripe_account_id } });
 });
 
 module.exports = router;

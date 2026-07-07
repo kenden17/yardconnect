@@ -17,9 +17,9 @@ const stripeKeyValid = /^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(STRIPE_KEY);
 let stripe = null;
 if (stripeKeyValid) {
   stripe = require('stripe')(STRIPE_KEY);
-  console.log('✅  Stripe initialized:', STRIPE_KEY.slice(0, 12) + '…');
+  console.log('Stripe initialized (' + (STRIPE_KEY.startsWith('sk_live_') ? 'live' : 'test') + ')');
 } else {
-  console.warn('⚠️   Stripe NOT initialized — STRIPE_SECRET_KEY is missing or invalid.');
+  console.warn('Stripe NOT initialized — STRIPE_SECRET_KEY is missing or invalid.');
 }
 
 const PLATFORM_FEE = 0.05;
@@ -110,9 +110,6 @@ router.post('/create-intent', paymentLimiter, requireStripe, [
         currency:             'usd',
         payment_method_types: ['card'],
         description:          `Campus Hands: "${job.title}"`,
-        // Funds are held on the platform account.
-        // The actual payout to the student happens in /api/jobs/:id/release
-        // only after the poster confirms work is done.
         metadata: { job_id, poster_email, student_id: job.student_id },
       },
       { idempotencyKey }
@@ -148,13 +145,10 @@ router.post('/create-intent', paymentLimiter, requireStripe, [
     });
   } catch (err) {
     console.error('Stripe create-intent error:', err.message);
-    return res.status(500).json({ error: err.message || 'Payment failed to start. Try again.' });
+    return res.status(500).json({ error: 'Payment failed to start. Please try again.' });
   }
 });
 
-// ── POST /api/payments/confirm ─────────────────────────────
-// Called by the frontend after Stripe.js confirms the card payment.
-// We verify the intent status directly with Stripe — never trust the client.
 router.post('/confirm', paymentLimiter, requireStripe, [
   body('payment_intent_id').trim().notEmpty(),
   body('poster_email').isEmail().normalizeEmail(),
@@ -186,19 +180,16 @@ router.post('/confirm', paymentLimiter, requireStripe, [
   }
 
   try {
-    // Always verify the payment status directly with Stripe — never trust client input
     const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
     if (intent.status !== 'succeeded') {
       return res.status(400).json({ error: `Payment not completed (status: ${intent.status}).` });
     }
 
-    // Atomic update: only mark paid if still pending (prevents webhook race)
     const result = db.prepare(
       "UPDATE transactions SET status = 'paid' WHERE id = ? AND status = 'pending'"
     ).run(tx.id);
 
     if (result.changes === 0) {
-      // Another process (webhook) already updated this — idempotent success
       return res.json({ message: 'Payment confirmed. Work can now begin!' });
     }
 
@@ -207,12 +198,10 @@ router.post('/confirm', paymentLimiter, requireStripe, [
     return res.json({ message: 'Payment confirmed. Work can now begin!' });
   } catch (err) {
     console.error('Stripe confirm error:', err.message);
-    return res.status(500).json({ error: err.message || 'Payment confirmation failed.' });
+    return res.status(500).json({ error: 'Payment confirmation failed. Please try again.' });
   }
 });
 
-// ── POST /api/payments/webhook ─────────────────────────────
-// Stripe sends signed events here. Raw body required for signature verification.
 router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) return res.sendStatus(200);
 
@@ -230,7 +219,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
 
   if (event.type === 'payment_intent.succeeded') {
     const intentId = event.data.object.id;
-    // Atomic update — only applies if not already marked paid (handles /confirm race)
     const result = db.prepare(
       "UPDATE transactions SET status = 'paid' WHERE stripe_payment_intent = ? AND status = 'pending'"
     ).run(intentId);

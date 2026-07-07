@@ -1,5 +1,3 @@
-// server/utils/ageCheck.js
-
 function getAge(dobString) {
   if (!dobString) return -1;
   const dob = new Date(dobString);
@@ -11,17 +9,13 @@ function getAge(dobString) {
   return age;
 }
 
-// Poster must be 18+
-// In dev mode always passes so you can test easily
 function isPosterOldEnough(dobString) {
-  if (process.env.NODE_ENV !== 'production') return true;
+  if (process.env.DISABLE_SAFETY_CHECKS === 'true') return true;
   return getAge(dobString) >= 18;
 }
 
-// Student must be 16–24
-// In dev mode always passes
 function isStudentAgeValid(dobString) {
-  if (process.env.NODE_ENV !== 'production') return true;
+  if (process.env.DISABLE_SAFETY_CHECKS === 'true') return true;
   const age = getAge(dobString);
   return age >= 16 && age <= 24;
 }

@@ -66,10 +66,32 @@ const Auth = (() => {
     });
   }
 
+  // Validate the stored token against the server on every page load.
+  // If the token is missing, expired, or rejected, clear the session immediately
+  // so the user is never shown a false "logged in" state.
+  async function validateSession() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return; // nothing to validate
+
+    try {
+      const data = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token },
+        credentials: 'include',
+      });
+      if (!data.ok) {
+        clearSession();
+        updateNav();
+      }
+    } catch (_) {
+      // Network error — leave session as-is so offline use isn't broken
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     updateNav();
     bindLogout();
     bindHamburger();
+    validateSession();
     document.querySelectorAll('.toggle-pw').forEach(btn => {
       btn.addEventListener('click', () => {
         const inp = btn.closest('.input-wrap').querySelector('input');

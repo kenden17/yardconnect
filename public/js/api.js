@@ -35,8 +35,7 @@ const API = (() => {
     getJobs:       (params = {}) => request('GET', '/jobs?' + new URLSearchParams(params).toString()),
     getCategories: ()            => request('GET', '/jobs/categories'),
     myJobsStudent: ()            => request('GET', '/jobs/mine/student'),
-    markComplete:  (jobId, posterEmail) => request('POST', `/jobs/${jobId}/mark-complete`, { poster_email: posterEmail }),
-    rateJob:       (jobId, data)        => request('POST', `/jobs/${jobId}/rate`, data),
+    rateJob:       (jobId, data) => request('POST', `/jobs/${jobId}/rate`, data),
 
     // Applications (student applies)
     apply: (job_id, message) => request('POST', '/applications', { job_id, message }),
@@ -44,9 +43,5 @@ const API = (() => {
     // Payments (student)
     paymentHistory: () => request('GET',  '/payments/history'),
     stripeOnboard:  () => request('POST', '/payments/onboard-student'),
-
-    // Job release (poster marks work done: active → pending_review)
-    releaseJob: (jobId, posterEmail) =>
-      request('POST', `/jobs/${jobId}/release`, { poster_email: posterEmail }),
   };
 })();

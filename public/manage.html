@@ -503,23 +503,33 @@
       });
     }
 
-    async function rejectApplicant(appId) {
+    function rejectApplicant(appId) {
       const btn = document.querySelector(`.reject-btn[data-id="${appId}"]`);
-      if (btn) btn.disabled = true;
-      try {
-        const res  = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/reject`, {
-          method:'PATCH', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({poster_email: currentEmail}),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        const card = document.getElementById(`acard-${appId}`);
-        if (card) card.querySelector('.app-actions').innerHTML =
-          '<span class="job-card__status status-cancelled" style="margin-top:6px;display:inline-block">Declined</span>';
-      } catch (err) {
-        showMsg(err.message,'error');
-        if (btn) btn.disabled = false;
-      }
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending code…'; btn.textContent = 'Decline'; }
+
+      const btnContainer = btn ? btn.closest('.app-actions') : document.getElementById('applicantsSection');
+
+      requestOtp('reject', btnContainer, async (otpCode) => {
+        if (btn) { btn.disabled = true; btn.textContent = 'Declining…'; }
+        try {
+          const res  = await fetch(`${BASE}/applications/${encodeURIComponent(appId)}/reject`, {
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ poster_email: currentEmail, otp_code: otpCode }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showMsg(data.error || 'Could not decline applicant.', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
+            return;
+          }
+          const card = document.getElementById(`acard-${appId}`);
+          if (card) card.querySelector('.app-actions').innerHTML =
+            '<span class="job-card__status status-cancelled" style="margin-top:6px;display:inline-block">Declined</span>';
+        } catch (err) {
+          showMsg(err.message, 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
+        }
+      });
     }
 
     // ── Stripe payment ─────────────────────────────────────
