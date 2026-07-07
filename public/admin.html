@@ -220,14 +220,27 @@
       const btn = document.getElementById('signInBtn');
       btn.disabled = true; btn.textContent = 'Signing in…';
       try {
+        // Test the secret by hitting /stats directly
         const r = await fetch('/api/admin/stats', {
-          headers: { 'x-admin-secret': secret },
+          headers: { 'x-admin-secret': secret, 'Content-Type': 'application/json' },
         });
-        if (!r.ok) { errEl.textContent = 'Invalid secret.'; return; }
+        if (r.status === 401 || r.status === 503) {
+          errEl.textContent = 'Invalid secret.';
+          return;
+        }
+        if (!r.ok) {
+          errEl.textContent = 'Server error. Please try again.';
+          return;
+        }
+        const stats = await r.json();
         adminSecret = secret;
         sessionStorage.setItem('ch_admin', secret);
         showDashboard();
-        loadAll();
+        // Populate stats from the response we already have, then load the rest
+        renderStats(stats);
+        Promise.all([loadUsers(), loadTasks()]).catch(err => {
+          if (err.message !== 'Unauthorized') alert('Failed to load admin data: ' + err.message);
+        });
       } catch {
         errEl.textContent = 'Network error. Please try again.';
       } finally {
@@ -241,9 +254,7 @@
     });
     document.getElementById('logoutAdmin').addEventListener('click', doLogout);
 
-    // ── Stats ────────────────────────────────────────────────────────────────
-    async function loadStats() {
-      const s = await api('/stats');
+    function renderStats(s) {
       document.getElementById('statGrid').innerHTML = `
         <div class="stat-card"><div class="stat-card__num">${s.totalUsers}</div><div class="stat-card__label">Students</div></div>
         <div class="stat-card"><div class="stat-card__num">${s.totalTasks}</div><div class="stat-card__label">Total Tasks</div></div>
@@ -255,6 +266,11 @@
         <div class="stat-card"><div class="stat-card__num">${s.pendingPayouts}</div><div class="stat-card__label">Pending Payouts</div></div>
       `;
       document.getElementById('lastRefresh').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    }
+
+    async function loadStats() {
+      const s = await api('/stats');
+      renderStats(s);
     }
 
     // ── Users ────────────────────────────────────────────────────────────────
@@ -440,7 +456,6 @@
       });
     });
 
-    // ── Load all on dashboard init ────────────────────────────────────────────
     async function loadAll() {
       try {
         await Promise.all([loadStats(), loadUsers(), loadTasks()]);
@@ -449,7 +464,6 @@
       }
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────────
     if (adminSecret) {
       showDashboard();
       loadAll();
