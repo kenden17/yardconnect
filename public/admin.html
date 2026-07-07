@@ -258,7 +258,7 @@
         // Populate stats from the response we already have, then load the rest
         renderStats(stats);
         Promise.all([loadUsers(), loadTasks()]).catch(err => {
-          if (err.message !== 'Unauthorized') alert('Failed to load admin data: ' + err.message);
+          if (err.message !== 'Unauthorized') toast('Failed to load admin data: ' + err.message, 'error');
         });
       } catch {
         errEl.textContent = 'Network error. Please try again.';
@@ -390,12 +390,12 @@
             const res = await fetch('/api/admin/id-photo/' + encodeURIComponent(btn.dataset.file), {
               headers: { 'x-admin-secret': adminSecret },
             });
-            if (!res.ok) { alert('Could not load photo.'); return; }
+            if (!res.ok) { toast('Could not load photo.', 'error'); return; }
             const blob = await res.blob();
             const url  = URL.createObjectURL(blob);
             window.open(url, '_blank');
           } catch {
-            alert('Could not load photo.');
+            toast('Could not load photo.', 'error');
           }
         });
       });
@@ -479,7 +479,7 @@
       try {
         await Promise.all([loadStats(), loadUsers(), loadTasks()]);
       } catch (err) {
-        if (err.message !== 'Unauthorized') alert('Failed to load admin data: ' + err.message);
+        if (err.message !== 'Unauthorized') toast('Failed to load admin data: ' + err.message, 'error');
       }
     }
 

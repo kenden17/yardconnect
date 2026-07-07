@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     submitBtn.disabled    = true;
-    submitBtn.innerHTML   = '<span class="spinner"></span> Logging in…';
+    submitBtn.textContent = 'Logging in…';
 
     try {
       const { token, user } = await API.login(email, password);

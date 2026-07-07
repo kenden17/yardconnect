@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const agreedToGuidelines = document.getElementById('agreeGuidelines')?.checked;
     if (!agreedToGuidelines) { showError('You must agree to the Community Guidelines.'); return; }
 
-    submitBtn.disabled   = true;
-    submitBtn.innerHTML  = '<span class="spinner"></span> Creating account…';
+    submitBtn.disabled    = true;
+    submitBtn.textContent = 'Creating account…';
 
     try {
       const { token, user } = await API.register(name, email, pw, dob, true);
