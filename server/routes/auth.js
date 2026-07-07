@@ -88,6 +88,9 @@ router.post('/register', [
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     return res.status(201).json({ token, user: toSessionUser(user) });
   } catch (err) {
+    if (err.message && err.message.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({ error: 'An account with that email already exists.' });
+    }
     console.error('Register error:', err);
     return res.status(500).json({ error: 'Registration failed. Please try again.' });
   }

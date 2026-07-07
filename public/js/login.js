@@ -1,31 +1,23 @@
 // public/js/login.js
-document.addEventListener('DOMContentLoaded', async () => {
-  // Verify token with server before redirecting — avoids bouncing when token is expired
-  if (Auth.isLoggedIn()) {
-    try {
-      const res = await fetch('/api/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('ch_token') },
-        credentials: 'include',
-      });
-      if (res.ok) {
-        window.location.href = '/dashboard.html';
-        return;
-      } else {
-        Auth.clearSession();
-      }
-    } catch (_) {
-      // Network error — fall through to show the login form
-    }
-  }
-
+document.addEventListener('DOMContentLoaded', () => {
   const form      = document.getElementById('loginForm');
   const errorEl   = document.getElementById('loginError');
   const submitBtn = document.getElementById('loginBtn');
 
-  // Show verified banner if coming from email link
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('verified') === '1') {
+  // Show verified banner if arriving from email link
+  if (new URLSearchParams(window.location.search).get('verified') === '1') {
     document.getElementById('verifiedAlert')?.classList.remove('hidden');
+  }
+
+  // If already logged in, verify with server then redirect — but don't block the form
+  if (Auth.isLoggedIn()) {
+    fetch('/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('ch_token') },
+      credentials: 'include',
+    }).then(res => {
+      if (res.ok) window.location.href = '/dashboard.html';
+      else Auth.clearSession();
+    }).catch(() => {});
   }
 
   function showError(msg) {
@@ -54,17 +46,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const { token, user } = await API.login(email, password);
-      try {
-        Auth.setSession(token, user);
-      } catch (storageErr) {
-        showError('Could not save session: ' + storageErr.message + '. Try disabling private browsing.');
-        submitBtn.disabled    = false;
-        submitBtn.textContent = 'Log In';
-        return;
-      }
+      Auth.setSession(token, user);
       window.location.href = '/dashboard.html';
     } catch (err) {
-      showError(err.message || ('Login failed: ' + String(err)));
+      showError(err.message || 'Login failed. Please try again.');
       submitBtn.disabled    = false;
       submitBtn.textContent = 'Log In';
     }

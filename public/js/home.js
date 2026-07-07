@@ -1,6 +1,22 @@
 // public/js/home.js — Homepage: post task form + browse tasks
 document.addEventListener('DOMContentLoaded', async () => {
 
+  // ── Scroll-reveal for sections ────────────────────────────
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('revealed');
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.how__col, .trust__item, .safety-card, .cat-card, .faq-item, .earn-card')
+    .forEach(el => {
+      el.classList.add('reveal-on-scroll');
+      revealObserver.observe(el);
+    });
+
   // ── Load categories into both dropdowns ─────────────────
   async function loadCategories() {
     try {

@@ -92,6 +92,15 @@ const Auth = (() => {
     bindLogout();
     bindHamburger();
     validateSession();
+
+    // Nav elevation on scroll
+    const nav = document.querySelector('.nav');
+    if (nav) {
+      const onScroll = () => nav.classList.toggle('nav--scrolled', window.scrollY > 8);
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
     document.querySelectorAll('.toggle-pw').forEach(btn => {
       btn.addEventListener('click', () => {
         const inp = btn.closest('.input-wrap').querySelector('input');

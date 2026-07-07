@@ -108,6 +108,10 @@ input, select, textarea { font-family: inherit; }
   background: rgba(255,255,255,.95); backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 8px rgba(0,0,0,.06);
+  transition: box-shadow .2s;
+}
+.nav--scrolled {
+  box-shadow: 0 2px 20px rgba(0,0,0,.1);
 }
 .nav__logo { font-family: var(--font-display); font-size: 1.7rem; letter-spacing: .04em; color: var(--text); }
 .nav__logo span { color: var(--accent); }
@@ -582,6 +586,17 @@ input, select, textarea { font-family: inherit; }
 
   /* Cat grid 2 col */
   .cat-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Scroll Reveal ───────────────────────────────────────── */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.reveal-on-scroll.revealed {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ── Liability / Terms ───────────────────────────────────── */

@@ -75,11 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Helpers ──────────────────────────────────────────────
   function showAlert(msg, type = 'success') {
-    const el = document.getElementById('dashAlert');
-    el.textContent = msg;
-    el.className = `alert alert--${type}`;
-    el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), 6000);
+    Auth.toast(msg, type === 'error' ? 'error' : 'success');
   }
 
   function escHtml(str) {
