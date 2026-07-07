@@ -391,11 +391,12 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not load task.');
         currentJob = data.job;
-        // Reset payment state for new job
+        // Destroy old card element before switching jobs
+        if (cardElement) { try { cardElement.destroy(); } catch(_) {} }
         stripeInstance = null; cardElement = null;
         renderTask(data.job, data.applications);
       } catch (err) {
-        alert(err.message);
+        Auth.toast(err.message, 'error');
       }
     }
 
@@ -542,25 +543,28 @@
         <div class="payment-breakdown__row" style="font-size:.82rem;color:var(--dim)"><span>Student receives</span><span>$${payout}</span></div>
         <div class="payment-breakdown__row payment-breakdown__row--total"><span>You are charged</span><span>$${parseFloat(job.pay).toFixed(2)}</span></div>`;
 
-      // Gate the payment form behind OTP verification
       const payNowBtn = document.getElementById('payNowBtn');
       payNowBtn.disabled = false;
       payNowBtn.textContent = 'Pay & Start Work →';
 
-      // Replace payNowBtn click with an OTP-gated flow
-      // We clone the button to remove any old listeners, then add a fresh one
+      // clientSecret is set after OTP+create-intent, used when poster clicks Confirm
+      let pendingClientSecret = null;
+
       const freshBtn = payNowBtn.cloneNode(true);
       payNowBtn.parentNode.replaceChild(freshBtn, payNowBtn);
 
       freshBtn.addEventListener('click', async () => {
-        freshBtn.disabled = true; freshBtn.textContent = 'Sending code…';
-        // Reset to label for the OTP cancel path
-        freshBtn.textContent = 'Pay & Start Work →';
+        // If we already have a client secret, skip straight to confirm
+        if (pendingClientSecret && cardElement) {
+          await doCardConfirm(freshBtn, pendingClientSecret);
+          return;
+        }
+
+        freshBtn.disabled = true; freshBtn.textContent = 'Pay & Start Work →';
 
         requestOtp('payment', freshBtn.parentNode, async (otpCode) => {
-          freshBtn.disabled = true; freshBtn.textContent = 'Processing…';
+          freshBtn.disabled = true; freshBtn.textContent = 'Loading payment…';
 
-          let clientSecret, publishableKey;
           try {
             const res  = await fetch(`${BASE}/payments/create-intent`, {
               method:'POST', headers:{'Content-Type':'application/json'},
@@ -572,74 +576,87 @@
               freshBtn.disabled = false; freshBtn.textContent = 'Pay & Start Work →';
               return;
             }
-            clientSecret = data.clientSecret; publishableKey = data.publishableKey;
+
+            pendingClientSecret = data.clientSecret;
+
+            // Mount the card element now that we have a valid intent
+            if (!cardElement) {
+              stripeInstance = Stripe(data.publishableKey);
+              cardElement = stripeInstance.elements().create('card', {
+                style: { base: { fontSize:'16px', color:'#1a1d2e', fontFamily:'Inter,system-ui,sans-serif', '::placeholder':{color:'#8b90a7'} }, invalid:{color:'#ef4444'} },
+              });
+              cardElement.mount('#stripe-card-element');
+              cardElement.on('change', e => { document.getElementById('card-errors').textContent = e.error ? e.error.message : ''; });
+            }
+
+            freshBtn.disabled = false;
+            freshBtn.textContent = 'Confirm & Pay →';
           } catch (err) {
             document.getElementById('card-errors').textContent = err.message;
             freshBtn.disabled = false; freshBtn.textContent = 'Pay & Start Work →';
-            return;
-          }
-
-          stripeInstance = Stripe(publishableKey);
-          if (!cardElement) {
-            cardElement = stripeInstance.elements().create('card', {
-              style: { base: { fontSize:'16px', color:'#1a1d2e', fontFamily:'Inter,system-ui,sans-serif', '::placeholder':{color:'#8b90a7'} }, invalid:{color:'#ef4444'} },
-            });
-            cardElement.mount('#stripe-card-element');
-            cardElement.on('change', e => { document.getElementById('card-errors').textContent = e.error ? e.error.message : ''; });
-          }
-
-          // Now actually confirm the card payment
-          const { paymentIntent, error } = await stripeInstance.confirmCardPayment(clientSecret, { payment_method:{ card: cardElement } });
-          if (error) {
-            document.getElementById('card-errors').textContent = error.message;
-            freshBtn.disabled = false; freshBtn.textContent = 'Pay & Start Work →';
-            return;
-          }
-          if (paymentIntent.status === 'succeeded') {
-            try {
-              const res  = await fetch(`${BASE}/payments/confirm`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ payment_intent_id: paymentIntent.id, poster_email: currentEmail }),
-              });
-              const data = await res.json();
-              if (!res.ok) throw new Error(data.error);
-              currentJob.status = 'active';
-              document.getElementById('paymentSection').classList.add('hidden');
-              document.getElementById('releasePaymentSection').classList.remove('hidden');
-              document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('active')}</strong>`;
-              updateStepIndicator('active');
-              showMsg('✅ Payment successful! Release payment once work is done.');
-            } catch (err) {
-              document.getElementById('card-errors').textContent = err.message;
-              freshBtn.disabled = false; freshBtn.textContent = 'Pay & Start Work →';
-            }
           }
         });
       });
+
+      async function doCardConfirm(btn, clientSecret) {
+        btn.disabled = true; btn.textContent = 'Processing payment…';
+        const { paymentIntent, error } = await stripeInstance.confirmCardPayment(clientSecret, {
+          payment_method: { card: cardElement },
+        });
+        if (error) {
+          document.getElementById('card-errors').textContent = error.message;
+          btn.disabled = false; btn.textContent = 'Confirm & Pay →';
+          return;
+        }
+        if (paymentIntent.status === 'succeeded') {
+          try {
+            const res  = await fetch(`${BASE}/payments/confirm`, {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ payment_intent_id: paymentIntent.id, poster_email: currentEmail }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            currentJob.status = 'active';
+            pendingClientSecret = null;
+            document.getElementById('paymentSection').classList.add('hidden');
+            document.getElementById('releasePaymentSection').classList.remove('hidden');
+            document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('active')}</strong>`;
+            updateStepIndicator('active');
+            showMsg('✅ Payment successful! Release payment once work is done.');
+          } catch (err) {
+            document.getElementById('card-errors').textContent = err.message;
+            btn.disabled = false; btn.textContent = 'Confirm & Pay →';
+          }
+        }
+      }
     }
 
-    document.getElementById('releasePaymentBtn').addEventListener('click', async () => {
+    document.getElementById('releasePaymentBtn').addEventListener('click', () => {
       if (!confirm('Confirm the student has finished? This releases their payment.')) return;
       const btn = document.getElementById('releasePaymentBtn');
-      btn.disabled = true; btn.textContent = 'Releasing…';
-      try {
-        const res  = await fetch(`${BASE}/jobs/${encodeURIComponent(currentJob.id)}/release`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({poster_email: currentEmail}),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        currentJob.status = 'pending_review';
-        document.getElementById('releasePaymentSection').classList.add('hidden');
-        document.getElementById('rateStudentSection').classList.remove('hidden');
-        document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('pending_review')}</strong>`;
-        updateStepIndicator('pending_review');
-        setupPosterRating(currentJob.id);
-        showMsg('✅ Payment released! Please leave a rating for the student.');
-      } catch (err) {
-        showMsg(err.message,'error');
-        btn.disabled = false; btn.textContent = '✅ Mark Work Done & Release Payment';
-      }
+      btn.disabled = true; btn.textContent = 'Sending code…'; btn.textContent = '✅ Mark Work Done & Release Payment';
+
+      requestOtp('release', btn.parentNode, async (otpCode) => {
+        btn.disabled = true; btn.textContent = 'Releasing…';
+        try {
+          const res  = await fetch(`${BASE}/jobs/${encodeURIComponent(currentJob.id)}/release`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ poster_email: currentEmail, otp_code: otpCode }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          currentJob.status = 'pending_review';
+          document.getElementById('releasePaymentSection').classList.add('hidden');
+          document.getElementById('rateStudentSection').classList.remove('hidden');
+          document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('pending_review')}</strong>`;
+          updateStepIndicator('pending_review');
+          setupPosterRating(currentJob.id);
+          showMsg('✅ Payment released! Please leave a rating for the student.');
+        } catch (err) {
+          showMsg(err.message, 'error');
+          btn.disabled = false; btn.textContent = '✅ Mark Work Done & Release Payment';
+        }
+      });
     });
 
     // ── Rating ─────────────────────────────────────────────

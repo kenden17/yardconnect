@@ -198,6 +198,25 @@
       showLogin('');
     }
 
+    function toast(msg, type = 'success') {
+      let c = document.getElementById('admin-toast-wrap');
+      if (!c) {
+        c = document.createElement('div');
+        c.id = 'admin-toast-wrap';
+        c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:320px';
+        document.body.appendChild(c);
+      }
+      const el = document.createElement('div');
+      const bg = type === 'error' ? '#fef2f2' : '#f0fdf4';
+      const border = type === 'error' ? '#fecaca' : '#bbf7d0';
+      const color  = type === 'error' ? '#b91c1c' : '#15803d';
+      el.style.cssText = `background:${bg};border:1.5px solid ${border};color:${color};padding:12px 16px;border-radius:10px;font-size:.88rem;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.1);pointer-events:all;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s`;
+      el.textContent = msg;
+      c.appendChild(el);
+      requestAnimationFrame(() => { el.style.opacity='1'; el.style.transform='translateY(0)'; });
+      setTimeout(() => { el.style.opacity='0'; el.style.transform='translateY(8px)'; setTimeout(() => el.remove(), 320); }, 4000);
+    }
+
     async function api(path, method = 'GET', body) {
       const opts = {
         method,
@@ -322,7 +341,7 @@
       const { tasks } = await api('/tasks');
       document.getElementById('tasksBody').innerHTML = tasks.length ? tasks.map(t => `
         <tr>
-          <td><strong>${escHtml(t.title)}</strong>${t.flagged ? ' <span title="${escHtml(t.flag_reason||'')}">🚩</span>' : ''}</td>
+          <td><strong>${escHtml(t.title)}</strong>${t.flagged ? ' <span title="' + escHtml(t.flag_reason||'') + '">🚩</span>' : ''}</td>
           <td style="color:var(--text-mid)">${escHtml(t.category)}</td>
           <td style="color:var(--accent);font-weight:700">$${Number(t.pay).toFixed(2)}</td>
           <td style="color:var(--text-mid)">${escHtml(t.city)}, ${escHtml(t.state)}</td>

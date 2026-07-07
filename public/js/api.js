@@ -15,7 +15,7 @@ const API = (() => {
     try {
       res = await fetch(BASE + path, opts);
     } catch (networkErr) {
-      throw new Error('Cannot reach the server. Make sure it is running on port 3000.');
+      throw new Error('Cannot reach the server. Please check your connection and try again.');
     }
 
     const data = await res.json().catch(() => ({}));

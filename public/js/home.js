@@ -25,12 +25,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function skeletonCards(n = 6) {
+    return Array.from({ length: n }, () => `
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line skeleton-line--sm"></div>
+        <div class="skeleton skeleton-line skeleton-line--xl"></div>
+        <div class="skeleton skeleton-line skeleton-line--lg"></div>
+        <div class="skeleton skeleton-line skeleton-line--md"></div>
+        <div class="skeleton skeleton-line skeleton-line--sm" style="margin-top:8px"></div>
+      </div>`).join('');
+  }
+
   async function loadJobs(page = 1) {
     const grid       = document.getElementById('jobsGrid');
     const pagination = document.getElementById('jobsPagination');
     if (!grid) return;
 
-    grid.innerHTML       = '<div class="loading-state">Loading tasks…</div>';
+    grid.innerHTML       = skeletonCards(6);
     pagination.innerHTML = '';
 
     const category = document.getElementById('filterCategory')?.value || '';
@@ -114,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.classList.add('btn--outline');
       btn.style.color = 'var(--accent)';
     } catch (err) {
-      alert(err.message);
+      Auth.toast(err.message, 'error');
       btn.disabled    = false;
       btn.textContent = 'Apply';
     }

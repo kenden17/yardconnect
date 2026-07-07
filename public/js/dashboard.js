@@ -13,7 +13,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('settingsEmail').textContent = user.email;
 
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('stripe') === 'success') showAlert('✅ Payout account connected! You can now receive payments.');
+  if (urlParams.get('stripe') === 'success') {
+    // Re-fetch user so has_stripe reflects the newly connected account
+    try {
+      const fresh = await API.me();
+      Auth.setSession(localStorage.getItem('ch_token'), fresh.user);
+      // Reload so the updated user object is used throughout the page
+      window.history.replaceState({}, '', '/dashboard.html');
+      window.location.reload();
+      return;
+    } catch (_) {}
+    showAlert('✅ Payout account connected! You can now receive payments.');
+  }
   if (urlParams.get('stripe') === 'refresh') showAlert('⚠️ Payout setup incomplete. Please try again.', 'error');
 
   // ── Payout warning banner ────────────────────────────────
@@ -44,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const { url } = await API.stripeOnboard();
         window.location.href = url;
-      } catch (err) { alert(err.message); }
+      } catch (err) { Auth.toast(err.message, 'error'); }
     });
   }
 
@@ -345,6 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     txList.innerHTML = '<div class="loading-state">Loading…</div>';
+    try {
       const { transactions } = await API.paymentHistory();
       if (!transactions.length) {
         txList.innerHTML = '<div class="empty-state"><p>No earnings yet. Complete a task to get paid.</p></div>';
@@ -380,7 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const { url } = await API.stripeOnboard();
       window.location.href = url;
-    } catch (err) { alert(err.message); }
+    } catch (err) { Auth.toast(err.message, 'error'); }
   });
 
   loadOverview();

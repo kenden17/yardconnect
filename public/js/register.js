@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function showError(msg) {
     errorEl.textContent = msg;
     errorEl.classList.remove('hidden');
+    // Trigger shake — remove class first so animation re-fires
+    errorEl.classList.remove('shake');
+    void errorEl.offsetWidth;
+    errorEl.classList.add('shake');
     errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -86,8 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const agreedToGuidelines = document.getElementById('agreeGuidelines')?.checked;
     if (!agreedToGuidelines) { showError('You must agree to the Community Guidelines.'); return; }
 
-    submitBtn.disabled    = true;
-    submitBtn.textContent = 'Creating account…';
+    submitBtn.disabled   = true;
+    submitBtn.innerHTML  = '<span class="spinner"></span> Creating account…';
 
     try {
       const { token, user } = await API.register(name, email, pw, dob, true);

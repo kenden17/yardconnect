@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   function showError(msg) {
     errorEl.textContent = msg;
     errorEl.classList.remove('hidden');
+    errorEl.classList.remove('shake');
+    void errorEl.offsetWidth;
+    errorEl.classList.add('shake');
     errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -47,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     submitBtn.disabled    = true;
-    submitBtn.textContent = 'Logging in…';
+    submitBtn.innerHTML   = '<span class="spinner"></span> Logging in…';
 
     try {
       const { token, user } = await API.login(email, password);

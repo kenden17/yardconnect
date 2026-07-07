@@ -100,5 +100,48 @@ const Auth = (() => {
     });
   });
 
-  return { getUser, setSession, clearSession, isLoggedIn, requireAuth, updateNav };
+  // ── Global toast ─────────────────────────────────────────
+  function toast(msg, type = 'success', duration = 4000) {
+    let container = document.getElementById('ch-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'ch-toast-container';
+      container.style.cssText = [
+        'position:fixed', 'bottom:24px', 'right:24px', 'z-index:9999',
+        'display:flex', 'flex-direction:column', 'gap:10px', 'pointer-events:none',
+        'max-width:340px',
+      ].join(';');
+      document.body.appendChild(container);
+    }
+    const el = document.createElement('div');
+    const bg = type === 'error'   ? '#fef2f2'
+             : type === 'warning' ? '#fffbeb'
+             : '#f0fdf4';
+    const border = type === 'error'   ? '#fecaca'
+                 : type === 'warning' ? '#fde68a'
+                 : '#bbf7d0';
+    const color  = type === 'error'   ? '#b91c1c'
+                 : type === 'warning' ? '#92400e'
+                 : '#15803d';
+    el.style.cssText = [
+      `background:${bg}`, `border:1.5px solid ${border}`, `color:${color}`,
+      'padding:12px 16px', 'border-radius:10px', 'font-size:.88rem', 'font-weight:500',
+      'box-shadow:0 4px 16px rgba(0,0,0,.1)', 'pointer-events:all', 'line-height:1.5',
+      'transition:opacity .3s, transform .3s',
+      'opacity:0', 'transform:translateY(8px)',
+    ].join(';');
+    el.textContent = msg;
+    container.appendChild(el);
+    requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    });
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(() => el.remove(), 320);
+    }, duration);
+  }
+
+  return { getUser, setSession, clearSession, isLoggedIn, requireAuth, updateNav, toast };
 })();

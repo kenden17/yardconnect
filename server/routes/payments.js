@@ -247,6 +247,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
     }
   }
 
+  if (event.type === 'transfer.failed') {
+    const transferId = event.data.object.id;
+    db.prepare(
+      "UPDATE transactions SET payout_status = 'failed' WHERE stripe_transfer_id = ?"
+    ).run(transferId);
+  }
+
   return res.sendStatus(200);
 });
 
