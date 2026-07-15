@@ -74,8 +74,8 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  animation: fadeUp .3s ease both;
 }
+body:not(.dash-page) { animation: fadeUp .3s ease both; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg-soft); }
@@ -544,22 +544,27 @@ body {
 
 /* ── Dashboard ───────────────────────────────────────────── */
 .dash-page {
-  height: 100vh; overflow: hidden;
-  display: flex; flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg-soft);
 }
+
 .dash-layout {
-  display: grid; grid-template-columns: 256px 1fr;
-  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: 256px 1fr;
   margin-top: var(--nav-h);
   height: calc(100vh - var(--nav-h));
   overflow: hidden;
 }
 .dash-sidebar {
-  background: var(--bg); border-right: 1px solid var(--border);
-  padding: 24px 0; height: 100%; overflow-y: auto;
-  display: flex; flex-direction: column;
-  box-shadow: 1px 0 0 var(--border);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 .dash-sidebar__user {
   display: flex; align-items: center; gap: 11px;
@@ -595,7 +600,10 @@ body {
 
 .dash-main {
   padding: 32px clamp(18px, 2.5vw, 44px);
-  overflow-y: auto; height: 100%; scroll-padding-top: 16px;
+  overflow-y: auto;
+  height: 100%;
+  min-height: 0;
+  scroll-padding-top: 16px;
 }
 .dash-title {
   font-family: var(--font-display); font-size: clamp(1.7rem,3vw,2.6rem);
@@ -806,13 +814,14 @@ body {
     width: 256px; transform: translateX(-100%);
     transition: transform .3s var(--ease);
     border-right: 1px solid var(--border);
+    height: calc(100vh - var(--nav-h));
   }
   .dash-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.1); }
   .dash-layout { grid-template-columns: 1fr; }
   .dash-main { padding: 22px 18px; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .nav__links { display: none; }
   .nav__auth, .nav__user { display: none; }
   .nav__hamburger { display: flex; }
