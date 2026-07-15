@@ -469,6 +469,7 @@
         btn.classList.add('active');
         document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
         const tab = btn.dataset.tab;
+        if (tab === 'tasks')           loadTasks();
         if (tab === 'ratings')         loadRatings();
         if (tab === 'transactions')    loadTransactions();
         if (tab === 'pending-payouts') loadPendingPayouts();
