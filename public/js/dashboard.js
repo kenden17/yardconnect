@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <span>You need a connected bank account to receive earnings from completed tasks.</span>
       </div>
       <button class="btn btn--sm dash-alert__btn" id="bannerOnboardBtn">Set Up Payouts →</button>`;
-    document.querySelector('.dash-layout').prepend(banner);
+    document.querySelector('.dash-main').prepend(banner);
     document.getElementById('bannerOnboardBtn').addEventListener('click', startOnboarding);
   }
 
