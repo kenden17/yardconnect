@@ -63,18 +63,22 @@ router.post('/request-otp', [
   `).run(id, email, await bcrypt.hash(code, 10), action, expiresAt);
 
   // Send email if SMTP is configured, otherwise log to console for dev
-  if (process.env.SMTP_USER) {
+  const { SMTP_CONFIGURED } = require('../utils/email');
+  if (SMTP_CONFIGURED) {
     try {
       await sendOtpEmail(email, code, ACTION_LABELS[action]);
     } catch (err) {
       console.error('OTP email send error:', err.message);
-      // Don't expose email errors to client — still return success
     }
   } else {
-    console.log(`DEV OTP for ${email} [${action}]: ${code}`);
+    console.log(`\n🔑 [DEV] OTP for ${email} [${action}]: ${code}\n`);
   }
 
-  return res.json({ message: 'Code sent to your email.' });
+  return res.json({
+    message: 'Code sent to your email.',
+    // In development with no SMTP, expose the code in the response so the flow can be tested
+    ...((!SMTP_CONFIGURED && process.env.NODE_ENV !== 'production') ? { dev_code: code } : {}),
+  });
 });
 
 module.exports = router;

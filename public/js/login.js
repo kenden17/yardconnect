@@ -9,14 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('verifiedAlert')?.classList.remove('hidden');
   }
 
-  // If already logged in, verify with server then redirect — but don't block the form
+  // If already logged in, redirect to dashboard — don't show login page again
   if (Auth.isLoggedIn()) {
     fetch('/api/auth/me', {
       headers: { 'Authorization': 'Bearer ' + localStorage.getItem('ch_token') },
       credentials: 'include',
     }).then(res => {
-      if (res.ok) window.location.href = '/dashboard.html';
-      else Auth.clearSession();
+      if (res.ok) {
+        window.location.href = '/dashboard.html';
+      } else {
+        // Token invalid — clear it and stay on login page
+        Auth.clearSession();
+      }
     }).catch(() => {});
   }
 

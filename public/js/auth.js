@@ -67,23 +67,29 @@ const Auth = (() => {
   }
 
   // Validate the stored token against the server on every page load.
-  // If the token is missing, expired, or rejected, clear the session immediately
-  // so the user is never shown a false "logged in" state.
+  // If the token is missing, expired, or rejected, clear the session immediately.
   async function validateSession() {
     const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) return; // nothing to validate
+    if (!token) return;
 
     try {
-      const data = await fetch('/api/auth/me', {
+      const res = await fetch('/api/auth/me', {
         headers: { 'Authorization': 'Bearer ' + token },
         credentials: 'include',
       });
-      if (!data.ok) {
+      if (!res.ok) {
         clearSession();
+        updateNav();
+        return;
+      }
+      // Refresh stored user data with latest from server (e.g. has_stripe updated)
+      const data = await res.json().catch(() => null);
+      if (data?.user) {
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         updateNav();
       }
     } catch (_) {
-      // Network error — leave session as-is so offline use isn't broken
+      // Network error — leave session as-is
     }
   }
 

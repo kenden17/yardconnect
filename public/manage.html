@@ -242,6 +242,11 @@
           showMsg(d.error || 'Could not send code. Try again.', 'error');
           return;
         }
+        // Dev mode: if the server returned the code directly, pre-fill it
+        if (d.dev_code) {
+          console.log('[DEV] OTP code:', d.dev_code);
+          wrapper && (wrapper._devCode = d.dev_code);
+        }
       } catch (e) {
         container.style.display = '';
         showMsg('Could not send code. Check your connection.', 'error');
@@ -264,13 +269,19 @@
         </div>
         <div class="otp-error" style="color:var(--danger);font-size:.82rem;margin-top:6px;min-height:18px"></div>
       `;
-      container.parentNode.insertBefore(wrapper, container.nextSibling);
 
       const input      = wrapper.querySelector('.otp-input');
       const verifyBtn  = wrapper.querySelector('.otp-verify-btn');
       const resendLink = wrapper.querySelector('.otp-resend-link');
       const cancelLink = wrapper.querySelector('.otp-cancel-link');
       const errEl      = wrapper.querySelector('.otp-error');
+
+      // Dev mode: pre-fill the code if server returned it
+      if (wrapper._devCode) {
+        input.value = wrapper._devCode;
+        const hint = wrapper.querySelector('p');
+        if (hint) hint.innerHTML += ' <span style="color:#f59e0b;font-weight:700">[DEV: code pre-filled]</span>';
+      }
 
       input.focus();
 
