@@ -27,8 +27,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const val = emailInput.value.toLowerCase();
     if (!val.includes('@')) { emailHint.textContent = ''; return; }
     const domain = val.split('@')[1] || '';
-    const blocked = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
-                     'me.com','aol.com','protonmail.com','proton.me','live.com','msn.com'];
+    const blocked = [
+      'gmail.com','googlemail.com',
+      'yahoo.com','yahoo.co.uk','ymail.com',
+      'hotmail.com','hotmail.co.uk','outlook.com','live.com','msn.com','passport.com',
+      'icloud.com','me.com','mac.com',
+      'aol.com','aim.com',
+      'protonmail.com','proton.me','pm.me',
+      'zoho.com','mail.com','email.com','gmx.com','gmx.net',
+      'fastmail.com','tutanota.com','tuta.io','hey.com',
+      'yandex.com','comcast.net','att.net','verizon.net','cox.net',
+    ];
     if (blocked.includes(domain)) {
       emailHint.textContent = '❌ Personal emails not accepted — use your school email.';
       emailHint.style.color = 'var(--danger)';

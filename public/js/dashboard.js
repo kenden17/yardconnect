@@ -207,6 +207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       recentEl.innerHTML = jobs.slice(0, 4).map(j => jobCardHtml(j)).join('');
+      recentEl.querySelectorAll('.rate-btn').forEach(btn => {
+        btn.addEventListener('click', () => openRatingModal(btn.dataset.id, btn.dataset.title));
+      });
     } catch (err) {
       cardsEl.innerHTML = `<div class="empty-state"><p>${escHtml(err.message)}</p></div>`;
     }
@@ -331,8 +334,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Settings ─────────────────────────────────────────────
   function loadSettings() {
+    // Re-read from localStorage — validateSession keeps this current
+    const freshUser = Auth.getUser() || user;
     const payoutEl = document.getElementById('payoutStatus');
-    if (user.has_stripe) {
+    if (freshUser.has_stripe) {
       payoutEl.innerHTML = '<span style="color:var(--success)">✅ Connected — you\'re all set to receive payments.</span>';
     } else {
       payoutEl.innerHTML = `

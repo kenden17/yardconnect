@@ -6,6 +6,7 @@ const cors         = require('cors');
 const cookieParser = require('cookie-parser');
 const path         = require('path');
 const rateLimit    = require('express-rate-limit');
+const morgan       = require('morgan');
 
 require('./db');
 
@@ -61,6 +62,9 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 
+// Request logging — 'dev' format in development, 'combined' (Apache-style) in production
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
 app.use('/api/', rateLimit({
   windowMs: 15 * 60 * 1000, max: 300,
   standardHeaders: true, legacyHeaders: false,
@@ -97,6 +101,9 @@ app.get('/api/admin/id-photo/:filename', (req, res) => {
 // Static frontend
 const PUBLIC = path.join(__dirname, '..', 'public');
 app.use(express.static(PUBLIC));
+
+// Health check — used by hosting platforms for uptime monitoring
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
 
 app.get('*', (req, res) => res.sendFile(path.join(PUBLIC, 'index.html')));
 

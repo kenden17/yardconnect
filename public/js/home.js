@@ -128,23 +128,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function applyToJob(jobId, btn) {
     if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; return; }
 
-    // Ask for a short message
-    const message = prompt('Add a short message to the poster (optional):\ne.g. "I\'m available this weekend and have my own equipment."') ?? '';
-    if (message === null) return; // cancelled
+    // Show inline message modal instead of browser prompt()
+    const existing = document.getElementById('applyModal');
+    if (existing) existing.remove();
 
-    btn.disabled    = true;
-    btn.textContent = 'Applying…';
-    try {
-      await API.apply(jobId, message.trim());
-      btn.textContent = '✓ Applied';
-      btn.classList.remove('btn--accent');
-      btn.classList.add('btn--outline');
-      btn.style.color = 'var(--accent)';
-    } catch (err) {
-      Auth.toast(err.message, 'error');
-      btn.disabled    = false;
-      btn.textContent = 'Apply';
-    }
+    const modal = document.createElement('div');
+    modal.id = 'applyModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal__backdrop"></div>
+      <div class="modal__box" style="max-width:440px">
+        <button class="modal__close" aria-label="Close">✕</button>
+        <h2 class="modal__title">Apply for this Task</h2>
+        <p style="font-size:.88rem;color:var(--text-2);margin-bottom:16px">
+          Add a short message to the poster — tell them why you're a good fit (optional).
+        </p>
+        <div class="form-group">
+          <label for="applyMessage">Your Message</label>
+          <textarea id="applyMessage" rows="3" maxlength="500"
+            placeholder="e.g. I'm available this weekend and have experience with yard work."></textarea>
+        </div>
+        <div class="alert alert--error hidden" id="applyError" role="alert"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn--accent" id="applySubmitBtn" style="flex:1">Submit Application →</button>
+          <button class="btn btn--outline" id="applyCancelBtn">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const submitBtn2 = modal.querySelector('#applySubmitBtn');
+    const cancelBtn  = modal.querySelector('#applyCancelBtn');
+    const errEl      = modal.querySelector('#applyError');
+
+    const close = () => modal.remove();
+    cancelBtn.addEventListener('click', close);
+    modal.querySelector('.modal__close').addEventListener('click', close);
+    modal.querySelector('.modal__backdrop').addEventListener('click', close);
+
+    submitBtn2.addEventListener('click', async () => {
+      const message = modal.querySelector('#applyMessage').value.trim();
+      submitBtn2.disabled    = true;
+      submitBtn2.textContent = 'Applying…';
+      errEl.classList.add('hidden');
+      try {
+        await API.apply(jobId, message);
+        modal.remove();
+        btn.textContent = '✓ Applied';
+        btn.classList.remove('btn--accent');
+        btn.classList.add('btn--outline');
+        btn.disabled = true;
+        Auth.toast('Application submitted! The poster will be in touch.');
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+        submitBtn2.disabled    = false;
+        submitBtn2.textContent = 'Submit Application →';
+      }
+    });
+
+    // Focus textarea
+    modal.querySelector('#applyMessage').focus();
   }
 
   document.getElementById('filterBtn')?.addEventListener('click', () => {

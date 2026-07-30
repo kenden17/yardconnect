@@ -6,13 +6,21 @@ const router = express.Router();
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
-// Rate limiter — 60 requests per 15 min per IP
+// In-memory rate limiter: 60 requests per IP per 15 min
+// Entries are pruned when checked to prevent memory leaks.
 const reqCounts = new Map();
 function checkRateLimit(ip) {
   const now   = Date.now();
+  const reset = now + 15 * 60 * 1000;
+  // Prune stale entries periodically
+  if (reqCounts.size > 5000) {
+    for (const [key, entry] of reqCounts) {
+      if (now > entry.resetAt) reqCounts.delete(key);
+    }
+  }
   const entry = reqCounts.get(ip);
   if (!entry || now > entry.resetAt) {
-    reqCounts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
+    reqCounts.set(ip, { count: 1, resetAt: reset });
     return false;
   }
   entry.count++;
@@ -117,12 +125,12 @@ router.get('/pending-payouts', requireAdmin, (req, res) => {
 
 // PATCH /api/admin/jobs/:id/flag
 router.patch('/jobs/:id/flag', requireAdmin, (req, res) => {
+  const job = db.prepare('SELECT id FROM jobs WHERE id = ?').get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Job not found.' });
   const { reason } = req.body;
   db.prepare('UPDATE jobs SET flagged = 1, flag_reason = ? WHERE id = ?')
     .run(reason || null, req.params.id);
-  const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
-  if (!job) return res.status(404).json({ error: 'Job not found.' });
-  return res.json({ job });
+  return res.json({ message: 'Job flagged.' });
 });
 
 // PATCH /api/admin/users/:id/suspend
