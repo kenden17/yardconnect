@@ -42,6 +42,5 @@ const API = (() => {
 
     // Payments (student)
     paymentHistory: () => request('GET',  '/payments/history'),
-    stripeOnboard:  () => request('POST', '/payments/onboard-student'),
   };
 })();

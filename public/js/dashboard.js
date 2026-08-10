@@ -15,36 +15,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('sideAvatar').textContent    = initial;
   document.getElementById('settingsAvatar').textContent = initial;
 
-  // ── Stripe success redirect — re-fetch user then reload ─
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('stripe') === 'success') {
-    try {
-      const fresh = await API.me();
-      Auth.setSession(localStorage.getItem('ch_token'), fresh.user);
-      window.history.replaceState({}, '', '/dashboard.html');
-      window.location.reload();
-      return;
-    } catch (_) {}
-  }
-  if (urlParams.get('stripe') === 'refresh') {
-    Auth.toast('Payout setup incomplete. Please try again.', 'error');
-  }
-
-  // ── Payout banner ────────────────────────────────────────
-  if (!user.has_stripe) {
-    const banner = document.createElement('div');
-    banner.className = 'dash-alert dash-alert--warn dash-payout-banner';
-    banner.innerHTML = `
-      <div class="dash-alert__icon">⚠️</div>
-      <div class="dash-alert__body">
-        <strong>Set up payouts to get paid.</strong>
-        <span>You need a connected bank account to receive earnings from completed tasks.</span>
-      </div>
-      <button class="btn btn--sm dash-alert__btn" id="bannerOnboardBtn">Set Up Payouts →</button>`;
-    document.querySelector('.dash-main').prepend(banner);
-    document.getElementById('bannerOnboardBtn').addEventListener('click', startOnboarding);
-  }
-
   // ── Mobile sidebar toggle ────────────────────────────────
   const toggleBtn = document.getElementById('sidebarToggle');
   const sidebar   = document.getElementById('dashSidebar');
@@ -105,13 +75,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   function appBadge(s) {
     const map = { pending:'Pending', accepted:'Accepted', rejected:'Declined' };
     return `<span class="badge-status badge-status--app-${s}">${map[s] || s}</span>`;
-  }
-
-  async function startOnboarding() {
-    try {
-      const { url } = await API.stripeOnboard();
-      window.location.href = url;
-    } catch (err) { Auth.toast(err.message, 'error'); }
   }
 
   // ── Rating modal ─────────────────────────────────────────
@@ -222,10 +185,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `<div class="job-status-note job-status-note--success">
           ✅ You've been accepted! The poster will contact you to coordinate.
           ${j.address ? `<div class="job-status-note__detail">📍 ${escHtml(j.address)}</div>` : ''}
-          ${!user.has_stripe ? `<div class="job-status-note job-status-note--warn" style="margin-top:6px">
-            ⚠️ Set up your payout account before work begins or you won't be paid.
-            <button class="btn btn--xs" onclick="document.getElementById('stripeOnboardBtn')?.click()">Set Up →</button>
-          </div>` : ''}
         </div>`;
       if (j.status === 'pending_payment')
         return `<div class="job-status-note job-status-note--warn">
@@ -291,14 +250,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Earnings ─────────────────────────────────────────────
   async function loadPayments() {
-    const onboardSection = document.getElementById('stripeOnboardSection');
-    const txList         = document.getElementById('txList');
-    if (!user.has_stripe) onboardSection.classList.remove('hidden');
-
+    const txList = document.getElementById('txList');
     txList.innerHTML = '<div class="loading-state">Loading…</div>';
     try {
-      const { transactions } = await API.paymentHistory();
-      if (!transactions.length) {
+      const { jobs } = await API.paymentHistory();
+      if (!jobs.length) {
         txList.innerHTML = `
           <div class="empty-state">
             <div class="empty-state__icon">💰</div>
@@ -307,23 +263,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>`;
         return;
       }
-      let total = 0;
-      transactions.forEach(t => { if (t.status === 'paid') total += t.student_payout; });
       txList.innerHTML = `
-        <div class="earnings-total">
-          <span class="earnings-total__num">$${total.toFixed(2)}</span>
-          <span class="earnings-total__label">Total Earned</span>
-        </div>
         <div class="tx-list">
-          ${transactions.map(t => `
+          ${jobs.map(j => `
             <div class="tx-row">
               <div class="tx-info">
-                <h4>${escHtml(t.job_title)}</h4>
-                <p>Posted by ${escHtml(t.poster_name)} · ${fmtDate(t.created_at)}</p>
+                <h4>${escHtml(j.title)}</h4>
+                <p>Posted by ${escHtml(j.poster_name)} · ${fmtDate(j.created_at)}</p>
               </div>
               <div class="tx-right">
-                <span class="tx-amount">$${Number(t.student_payout).toFixed(2)}</span>
-                <span class="tx-status tx-${escHtml(t.status)}">${escHtml(t.status)}</span>
+                <span class="tx-amount">$${parseFloat(j.pay).toFixed(2)}</span>
+                <span class="tx-status">${escHtml(j.status)}</span>
               </div>
             </div>`).join('')}
         </div>`;
@@ -334,21 +284,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Settings ─────────────────────────────────────────────
   function loadSettings() {
-    // Re-read from localStorage — validateSession keeps this current
-    const freshUser = Auth.getUser() || user;
-    const payoutEl = document.getElementById('payoutStatus');
-    if (freshUser.has_stripe) {
-      payoutEl.innerHTML = '<span style="color:var(--success)">✅ Connected — you\'re all set to receive payments.</span>';
-    } else {
-      payoutEl.innerHTML = `
-        <span style="color:var(--warn)">⚠️ No payout account connected.</span>
-        <br/><button class="btn btn--accent btn--sm" style="margin-top:10px" id="settingsOnboardBtn">Connect Bank Account →</button>`;
-      document.getElementById('settingsOnboardBtn')?.addEventListener('click', startOnboarding);
-    }
+    // Settings panel — no payout info needed
   }
-
-  // ── Stripe onboard button (earnings panel) ───────────────
-  document.getElementById('stripeOnboardBtn')?.addEventListener('click', startOnboarding);
 
   // ── Init ─────────────────────────────────────────────────
   loadOverview();

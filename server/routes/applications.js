@@ -84,7 +84,8 @@ router.patch('/:id/accept', [
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
   const app = db.prepare(`
-    SELECT a.*, j.poster_email, j.poster_name, j.status AS job_status, j.title AS job_title
+    SELECT a.*, j.poster_email, j.poster_name, j.status AS job_status, j.title AS job_title,
+           j.pay AS job_pay, j.payment_method AS job_payment_method
     FROM applications a JOIN jobs j ON j.id = a.job_id
     WHERE a.id = ?
   `).get(req.params.id);
@@ -102,15 +103,15 @@ router.patch('/:id/accept', [
   db.prepare("UPDATE applications SET status = 'accepted' WHERE id = ?").run(app.id);
   db.prepare("UPDATE applications SET status = 'rejected' WHERE job_id = ? AND id != ?")
     .run(app.job_id, app.id);
-  // assigned → poster will pay next to move to pending_payment → active
-  db.prepare("UPDATE jobs SET status = 'assigned', student_id = ? WHERE id = ?")
+  // Go straight to active — no payment step needed
+  db.prepare("UPDATE jobs SET status = 'active', student_id = ? WHERE id = ?")
     .run(app.student_id, app.job_id);
 
   sendJobAssignedEmail(app.poster_email, app.poster_name, student.name, app.job_title)
     .catch(console.error);
 
   return res.json({
-    message: `${student.name} has been accepted! Complete the payment below to get work started.`,
+    message: `${student.name} has been accepted! Work can now begin. Remember to pay them $${parseFloat(app.job_pay || 0).toFixed(2)} in ${app.job_payment_method === 'check' ? 'check' : 'cash'} when complete.`,
     student_name: student.name,
   });
 });

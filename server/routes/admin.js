@@ -47,14 +47,13 @@ router.get('/stats', requireAdmin, (req, res) => {
   const totalTasks     = db.prepare('SELECT COUNT(*) AS cnt FROM jobs').get().cnt;
   const openTasks      = db.prepare("SELECT COUNT(*) AS cnt FROM jobs WHERE status = 'open'").get().cnt;
   const completedTasks = db.prepare("SELECT COUNT(*) AS cnt FROM jobs WHERE status = 'completed'").get().cnt;
+  const activeTasks    = db.prepare("SELECT COUNT(*) AS cnt FROM jobs WHERE status = 'active'").get().cnt;
   const totalApps      = db.prepare('SELECT COUNT(*) AS cnt FROM applications').get().cnt;
   const totalRatings   = db.prepare('SELECT COUNT(*) AS cnt FROM ratings').get().cnt;
-  const totalPaid      = db.prepare("SELECT COALESCE(SUM(student_payout),0) AS total FROM transactions WHERE status = 'paid'").get().total;
-  const totalRevenue   = db.prepare("SELECT COALESCE(SUM(platform_fee),0) AS total FROM transactions WHERE status='paid'").get().total;
-  const pendingPayouts = db.prepare(
-    "SELECT COUNT(DISTINCT t.student_id) AS cnt FROM transactions t JOIN users u ON u.id=t.student_id WHERE t.status='paid' AND (u.stripe_account_id IS NULL OR u.stripe_account_id='')"
-  ).get().cnt;
-  return res.json({ totalUsers, totalTasks, openTasks, completedTasks, totalApps, totalRatings, totalPaid, totalRevenue, pendingPayouts });
+  const cashJobs       = db.prepare("SELECT COUNT(*) AS cnt FROM jobs WHERE payment_method = 'cash' AND status != 'cancelled'").get().cnt;
+  const checkJobs      = db.prepare("SELECT COUNT(*) AS cnt FROM jobs WHERE payment_method = 'check' AND status != 'cancelled'").get().cnt;
+  const totalPay       = db.prepare("SELECT COALESCE(SUM(pay),0) AS total FROM jobs WHERE status = 'completed'").get().total;
+  return res.json({ totalUsers, totalTasks, openTasks, completedTasks, activeTasks, totalApps, totalRatings, cashJobs, checkJobs, totalPay });
 });
 
 // GET /api/admin/users

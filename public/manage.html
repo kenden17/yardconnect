@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/main.css" />
-  <script src="https://js.stripe.com/v3/"></script>
   <style>
     .job-pick-card {
       display: flex; align-items: center; justify-content: space-between;
@@ -22,25 +21,7 @@
     .job-pick-card__title { font-weight: 600; font-size: .95rem; color: var(--text); }
     .job-pick-card__meta  { font-size: .8rem; color: var(--text-mid); margin-top: 2px; }
     .job-pick-card__arrow { font-size: 1.2rem; color: var(--accent); flex-shrink: 0; }
-    .payment-box {
-      background: var(--bg-alt); border: 1.5px solid var(--border);
-      border-radius: var(--radius-lg); padding: 24px; margin-top: 8px;
-    }
-    .payment-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: var(--text); }
-    .payment-breakdown { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; font-size: .9rem; }
-    .payment-breakdown__row { display: flex; justify-content: space-between; color: var(--text-mid); }
-    .payment-breakdown__row--total {
-      font-weight: 700; color: var(--text);
-      border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;
-    }
-    #stripe-card-element {
-      background: var(--bg); border: 1.5px solid var(--border);
-      border-radius: var(--radius); padding: 14px 16px; margin: 16px 0; transition: border-color .2s;
-    }
-    #stripe-card-element.StripeElement--focus  { border-color: var(--accent); }
-    #stripe-card-element.StripeElement--invalid { border-color: var(--danger); }
-    #card-errors { color: var(--danger); font-size: .85rem; margin-bottom: 12px; min-height: 20px; }
-    .secure-badge { display: flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--dim); margin-top: 10px; }
+
     .step-indicator {
       display: flex; margin-bottom: 28px; border-radius: var(--radius);
       overflow: hidden; border: 1px solid var(--border);
@@ -109,9 +90,8 @@
         <!-- Step indicator -->
         <div class="step-indicator" id="stepIndicator">
           <div class="step-indicator__step" id="step1">1 · Pick Student</div>
-          <div class="step-indicator__step" id="step2">2 · Pay</div>
-          <div class="step-indicator__step" id="step3">3 · In Progress</div>
-          <div class="step-indicator__step" id="step4">4 · Done &amp; Rate</div>
+          <div class="step-indicator__step" id="step2">2 · In Progress</div>
+          <div class="step-indicator__step" id="step3">3 · Done &amp; Rate</div>
         </div>
 
         <div id="taskInfo" style="margin-bottom:20px"></div>
@@ -120,26 +100,6 @@
         <div id="applicantsSection" class="hidden">
           <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:12px">Applicants</h2>
           <div id="applicantsList"></div>
-        </div>
-
-        <!-- Payment -->
-        <div id="paymentSection" class="hidden" style="margin-top:20px">
-          <div class="payment-box">
-            <h3>💳 Pay to Begin Work</h3>
-            <p style="font-size:.88rem;color:var(--text-mid);margin-bottom:4px">
-              Payment is held securely and only released after you confirm the work is done.
-            </p>
-            <div class="payment-breakdown" id="paymentBreakdown"></div>
-            <div id="stripe-card-element"></div>
-            <div id="card-errors" role="alert"></div>
-            <button class="btn btn--accent btn--full" id="payNowBtn">Pay &amp; Start Work →</button>
-            <div class="secure-badge">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              Secured by Stripe. Your card details never touch our servers.
-            </div>
-          </div>
         </div>
 
         <!-- Release -->
@@ -185,8 +145,6 @@
     const BASE = '/api';
     let currentJob     = null;
     let currentEmail   = null;
-    let stripeInstance = null;
-    let cardElement    = null;
 
     function escHtml(s) {
       return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -210,8 +168,8 @@
     }
 
     function updateStepIndicator(status) {
-      const idx = {open:0,assigned:1,pending_payment:1,active:2,pending_review:3,completed:3}[status] ?? 0;
-      ['step1','step2','step3','step4'].forEach((id,i) => {
+      const idx = {open:0,assigned:1,active:1,pending_review:2,completed:2}[status] ?? 0;
+      ['step1','step2','step3'].forEach((id,i) => {
         const el = document.getElementById(id);
         el.className = 'step-indicator__step';
         if (i < idx) el.classList.add('done');
@@ -404,9 +362,6 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not load task.');
         currentJob = data.job;
-        // Destroy old card element before switching jobs
-        if (cardElement) { try { cardElement.destroy(); } catch(_) {} }
-        stripeInstance = null; cardElement = null;
         renderTask(data.job, data.applications);
       } catch (err) {
         Auth.toast(err.message, 'error');
@@ -429,26 +384,26 @@
       updateStepIndicator(job.status);
 
       // Reset all sections
-      ['applicantsSection','paymentSection','releasePaymentSection','rateStudentSection',
+      ['applicantsSection','releasePaymentSection','rateStudentSection',
        'completeSuccess','completeError','rateError','rateSuccess'].forEach(id => {
         document.getElementById(id)?.classList.add('hidden');
       });
-      document.getElementById('card-errors').textContent = '';
 
       const payout = (job.pay * 0.95).toFixed(2);
+      const payMethodLabel = job.payment_method === 'check' ? '📝 Check' : '💵 Cash';
       document.getElementById('taskInfo').innerHTML = `
         <div class="info-card">
           <h3>${escHtml(job.title)}</h3>
           <p style="color:var(--text-mid)">${escHtml(job.category)} &middot; ${escHtml(job.city)}, ${escHtml(job.state)}</p>
           <p style="margin-top:6px">Pay: <strong style="color:var(--accent)">$${parseFloat(job.pay).toFixed(2)}</strong>
             <span style="font-size:.8rem;color:var(--dim)"> &middot; Student receives $${payout}</span></p>
+          <p style="margin-top:4px;font-size:.85rem">Payment method: <strong>${payMethodLabel}</strong></p>
           <p id="statusLine" style="margin-top:6px">Status: <strong>${getLabel(job.status)}</strong></p>
           <p style="margin-top:4px;font-size:.8rem;color:var(--dim)">Posted ${fmtDate(job.created_at)}</p>
         </div>`;
 
       if (job.status === 'open') showApplicants(apps);
-      if (job.status === 'assigned' || job.status === 'pending_payment') initStripePayment(job);
-      if (job.status === 'active') document.getElementById('releasePaymentSection').classList.remove('hidden');
+      if (job.status === 'assigned' || job.status === 'pending_payment' || job.status === 'active') document.getElementById('releasePaymentSection').classList.remove('hidden');
       if (job.status === 'pending_review' || job.status === 'completed') {
         document.getElementById('rateStudentSection').classList.remove('hidden');
         setupPosterRating(job.id);
@@ -505,11 +460,10 @@
           }
           currentJob.status = 'assigned';
           document.getElementById('applicantsSection').classList.add('hidden');
-          document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('assigned')}</strong>`;
-          updateStepIndicator('assigned');
+          document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('active')}</strong>`;
+          updateStepIndicator('active');
           showMsg('✅ ' + data.message);
-          document.getElementById('paymentSection').classList.remove('hidden');
-          initStripePayment(currentJob);
+          document.getElementById('releasePaymentSection').classList.remove('hidden');
         } catch (err) {
           showMsg(err.message, 'error');
           if (btn) { btn.disabled = false; btn.textContent = '✅ Accept'; }
@@ -544,104 +498,6 @@
           if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
         }
       });
-    }
-
-    // ── Stripe payment ─────────────────────────────────────
-    async function initStripePayment(job) {
-      document.getElementById('paymentSection').classList.remove('hidden');
-      const fee = (job.pay*0.05).toFixed(2), payout = (job.pay*0.95).toFixed(2);
-      document.getElementById('paymentBreakdown').innerHTML = `
-        <div class="payment-breakdown__row"><span>Task: ${escHtml(job.title)}</span><span>$${parseFloat(job.pay).toFixed(2)}</span></div>
-        <div class="payment-breakdown__row"><span>Platform fee (5%)</span><span>$${fee}</span></div>
-        <div class="payment-breakdown__row" style="font-size:.82rem;color:var(--dim)"><span>Student receives</span><span>$${payout}</span></div>
-        <div class="payment-breakdown__row payment-breakdown__row--total"><span>You are charged</span><span>$${parseFloat(job.pay).toFixed(2)}</span></div>`;
-
-      const payNowBtn = document.getElementById('payNowBtn');
-      payNowBtn.disabled = false;
-      payNowBtn.textContent = 'Pay & Start Work →';
-
-      // clientSecret is set after OTP+create-intent, used when poster clicks Confirm
-      let pendingClientSecret = null;
-
-      const freshBtn = payNowBtn.cloneNode(true);
-      payNowBtn.parentNode.replaceChild(freshBtn, payNowBtn);
-
-      freshBtn.addEventListener('click', async () => {
-        // If we already have a client secret, skip straight to confirm
-        if (pendingClientSecret && cardElement) {
-          await doCardConfirm(freshBtn, pendingClientSecret);
-          return;
-        }
-
-        freshBtn.disabled = true; freshBtn.textContent = 'Pay & Start Work →';
-
-        requestOtp('payment', freshBtn.parentNode, async (otpCode) => {
-          freshBtn.disabled = true; freshBtn.textContent = 'Loading payment…';
-
-          try {
-            const res  = await fetch(`${BASE}/payments/create-intent`, {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ job_id: job.id, poster_email: currentEmail, otp_code: otpCode }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              document.getElementById('card-errors').textContent = data.error;
-              freshBtn.disabled = false; freshBtn.textContent = 'Pay & Start Work →';
-              return;
-            }
-
-            pendingClientSecret = data.clientSecret;
-
-            // Mount the card element now that we have a valid intent
-            if (!cardElement) {
-              stripeInstance = Stripe(data.publishableKey);
-              cardElement = stripeInstance.elements().create('card', {
-                style: { base: { fontSize:'16px', color:'#1a1d2e', fontFamily:'Inter,system-ui,sans-serif', '::placeholder':{color:'#8b90a7'} }, invalid:{color:'#ef4444'} },
-              });
-              cardElement.mount('#stripe-card-element');
-              cardElement.on('change', e => { document.getElementById('card-errors').textContent = e.error ? e.error.message : ''; });
-            }
-
-            freshBtn.disabled = false;
-            freshBtn.textContent = 'Confirm & Pay →';
-          } catch (err) {
-            document.getElementById('card-errors').textContent = err.message;
-            freshBtn.disabled = false; freshBtn.textContent = 'Pay & Start Work →';
-          }
-        });
-      });
-
-      async function doCardConfirm(btn, clientSecret) {
-        btn.disabled = true; btn.textContent = 'Processing payment…';
-        const { paymentIntent, error } = await stripeInstance.confirmCardPayment(clientSecret, {
-          payment_method: { card: cardElement },
-        });
-        if (error) {
-          document.getElementById('card-errors').textContent = error.message;
-          btn.disabled = false; btn.textContent = 'Confirm & Pay →';
-          return;
-        }
-        if (paymentIntent.status === 'succeeded') {
-          try {
-            const res  = await fetch(`${BASE}/payments/confirm`, {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ payment_intent_id: paymentIntent.id, poster_email: currentEmail }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            currentJob.status = 'active';
-            pendingClientSecret = null;
-            document.getElementById('paymentSection').classList.add('hidden');
-            document.getElementById('releasePaymentSection').classList.remove('hidden');
-            document.getElementById('statusLine').innerHTML = `Status: <strong>${getLabel('active')}</strong>`;
-            updateStepIndicator('active');
-            showMsg('✅ Payment successful! Release payment once work is done.');
-          } catch (err) {
-            document.getElementById('card-errors').textContent = err.message;
-            btn.disabled = false; btn.textContent = 'Confirm & Pay →';
-          }
-        }
-      }
     }
 
     document.getElementById('releasePaymentBtn').addEventListener('click', () => {

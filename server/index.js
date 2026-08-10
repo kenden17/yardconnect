@@ -21,19 +21,14 @@ if (!process.env.ADMIN_SECRET) {
   console.error('FATAL: ADMIN_SECRET is not set.');
   process.exit(1);
 }
-if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  console.warn('WARNING: STRIPE_WEBHOOK_SECRET is not set. Webhook signature verification is disabled.');
-}
 
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
+      scriptSrc:  ["'self'", "'unsafe-inline'"],
       styleSrc:   ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:    ["'self'", "https://fonts.gstatic.com"],
-      frameSrc:   ["https://js.stripe.com"],
-      connectSrc: ["'self'", "https://api.stripe.com"],
       imgSrc:     ["'self'", "data:", "blob:", "https:"],
     },
   },
@@ -54,9 +49,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
   credentials: true,
 }));
-
-// Stripe webhook needs raw body — mount before express.json()
-app.use('/api/payments/webhook', require('./routes/payments'));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
@@ -114,7 +106,4 @@ app.use((err, req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`Campus Hands running at http://localhost:${PORT}`);
-  if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
-    console.log('Stripe not configured — add STRIPE_SECRET_KEY to .env');
-  }
 });

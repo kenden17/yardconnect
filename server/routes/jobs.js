@@ -14,11 +14,7 @@ const { validateZipState, validatePhone, validateIdNumber, validateEmailDomain, 
 const router = express.Router();
 const { requirePosterOtp } = require('../middleware/posterOtp');
 
-// Stripe — used only in the release route for the actual payout transfer
-const STRIPE_KEY = (process.env.STRIPE_SECRET_KEY || '').trim();
-const stripe = /^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(STRIPE_KEY)
-  ? require('stripe')(STRIPE_KEY)
-  : null;
+// Stripe — removed. Payments are now cash or check, handled offline.
 
 const CATEGORIES = [
   'Errands & Delivery',
@@ -68,7 +64,7 @@ router.get('/', [
   if (req.query.zip)      { where += ' AND j.zip = ?';            params.push(req.query.zip); }
 
   const jobs  = db.prepare(`
-    SELECT id, poster_name, title, description, category, pay, city, state, zip, status, created_at,
+    SELECT id, poster_name, title, description, category, pay, payment_method, city, state, zip, status, created_at,
            has_pets, has_stairs, heavy_lifting, duration_estimate
     FROM jobs j ${where}
     ORDER BY j.created_at DESC LIMIT ? OFFSET ?
@@ -113,7 +109,7 @@ router.get('/categories', (req, res) => res.json({ categories: CATEGORIES }));
 // ── GET /api/jobs/mine/student ──────────────────────────────
 router.get('/mine/student', requireAuth, (req, res) => {
   const jobs = db.prepare(`
-    SELECT j.id, j.poster_name, j.title, j.category, j.pay, j.city, j.state,
+    SELECT j.id, j.poster_name, j.title, j.category, j.pay, j.payment_method, j.city, j.state,
            j.address, j.status, j.created_at, a.status AS application_status, a.id AS application_id,
            (SELECT COUNT(*) FROM ratings r WHERE r.job_id = j.id AND r.rated_by = 'poster') AS student_rated_poster
     FROM applications a
@@ -127,7 +123,7 @@ router.get('/mine/student', requireAuth, (req, res) => {
 // ── GET /api/jobs/:id ───────────────────────────────────────
 router.get('/:id', (req, res) => {
   const job = db.prepare(`
-    SELECT id, poster_name, title, description, category, pay,
+    SELECT id, poster_name, title, description, category, pay, payment_method,
            city, state, zip, status, created_at,
            has_pets, has_stairs, heavy_lifting, duration_estimate, photo_url,
            address, student_id
@@ -165,7 +161,7 @@ router.post('/', (req, res, next) => {
       poster_name, poster_email, poster_phone, poster_address, poster_dob,
       poster_id_type, poster_id_num, poster_agreed, poster_agreed_guidelines,
       title, description, category, pay, address, city, state, zip,
-      duration_estimate, has_pets, has_stairs, heavy_lifting,
+      duration_estimate, has_pets, has_stairs, heavy_lifting, payment_method,
     } = req.body;
 
     const errors = [];
@@ -232,6 +228,11 @@ router.post('/', (req, res, next) => {
     const payNum = parseFloat(pay);
     if (isNaN(payNum) || payNum < 5 || payNum > 2000) errors.push('Pay must be between $5 and $2,000.');
 
+    // ── Payment method ──────────────────────────────────────
+    const validPayMethods = ['cash', 'check'];
+    const payMethod = (payment_method || 'cash').toLowerCase().trim();
+    if (!validPayMethods.includes(payMethod)) errors.push('Payment method must be cash or check.');
+
     // ── Task address ───────────────────────────────────────
     if (!address?.trim() || address.trim().length < 5) errors.push('Task street address is required.');
 
@@ -293,8 +294,8 @@ router.post('/', (req, res, next) => {
         id, poster_name, poster_email, poster_phone, poster_address, poster_dob,
         poster_id_type, poster_id_num, poster_id_photo, poster_agreed,
         title, description, category, pay, address, city, state, zip,
-        duration_estimate, has_pets, has_stairs, heavy_lifting
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        duration_estimate, has_pets, has_stairs, heavy_lifting, payment_method
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       poster_name.trim(),
@@ -318,7 +319,8 @@ router.post('/', (req, res, next) => {
       duration_estimate?.trim() || null,
       has_pets === 'true' ? 1 : 0,
       has_stairs === 'true' ? 1 : 0,
-      heavy_lifting === 'true' ? 1 : 0
+      heavy_lifting === 'true' ? 1 : 0,
+      payMethod
     );
 
     return res.status(201).json({
@@ -329,8 +331,7 @@ router.post('/', (req, res, next) => {
 });
 
 // ── POST /api/jobs/:id/mark-complete ────────────────────────
-// Now just sets status to pending_payment so payment can be taken.
-// Called automatically after student is accepted — not a separate poster action.
+// Sets job status to active once a student is accepted.
 router.post('/:id/mark-complete', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
 ], (req, res) => {
@@ -342,23 +343,21 @@ router.post('/:id/mark-complete', [
   if (job.poster_email !== req.body.poster_email) {
     return res.status(403).json({ error: 'Email does not match this task.' });
   }
-  if (!['assigned', 'pending_payment'].includes(job.status)) {
-    return res.status(400).json({ error: 'Task must be assigned before payment.' });
+  if (job.status !== 'assigned') {
+    return res.status(400).json({ error: 'Task must be assigned to mark active.' });
   }
 
-  db.prepare("UPDATE jobs SET status = 'pending_payment' WHERE id = ?")
-    .run(req.params.id);
-
-  return res.json({ message: 'Ready for payment.' });
+  db.prepare("UPDATE jobs SET status = 'active' WHERE id = ?").run(req.params.id);
+  return res.json({ message: 'Task is now active. Work has begun!' });
 });
 
 // ── POST /api/jobs/:id/release ───────────────────────────────
 // Poster confirms work done: active → pending_review
-// This is where the student actually gets paid via Stripe transfer.
+// Payment is handled offline (cash or check) — no Stripe involved.
 router.post('/:id/release', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
   body('otp_code').trim().notEmpty().withMessage('Verification code required.'),
-], requirePosterOtp('release'), async (req, res) => {
+], requirePosterOtp('release'), (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
@@ -368,63 +367,16 @@ router.post('/:id/release', [
     return res.status(403).json({ error: 'Email does not match this task.' });
   }
   if (job.status !== 'active') {
-    return res.status(400).json({ error: 'Task must be active before releasing payment.' });
+    return res.status(400).json({ error: 'Task must be active before marking complete.' });
   }
-
-  // Get the paid transaction and student stripe account
-  const tx = db.prepare(`
-    SELECT t.*, u.stripe_account_id AS student_stripe_account
-    FROM transactions t
-    JOIN users u ON u.id = t.student_id
-    WHERE t.job_id = ? AND t.status = 'paid'
-  `).get(job.id);
-
-  if (!tx) return res.status(400).json({ error: 'No confirmed payment found for this task.' });
-
-  if (tx.payout_status === 'transferred') {
-    return res.json({ message: 'Payment already released to the student. Both parties can now leave a rating.' });
-  }
-
-  const payoutCents = Math.round(tx.student_payout * 100);
-
-  let transferId = null;
-  if (tx.student_stripe_account) {
-    if (!stripe) {
-      return res.status(503).json({ error: 'Stripe is not configured on this server.' });
-    }
-    try {
-      const idempotencyKey = `release-${tx.id}`;
-      const transfer = await stripe.transfers.create(
-        {
-          amount:      payoutCents,
-          currency:    'usd',
-          destination: tx.student_stripe_account,
-          description: `Campus Hands payout: "${job.title}"`,
-          metadata:    { job_id: job.id, transaction_id: tx.id },
-        },
-        { idempotencyKey }
-      );
-      transferId = transfer.id;
-    } catch (err) {
-      console.error('Stripe transfer error:', err.message);
-      return res.status(500).json({ error: 'Could not transfer funds to student. Please try again.' });
-    }
-  }
-
-  db.prepare(`
-    UPDATE transactions
-    SET stripe_transfer_id = ?, payout_status = ?
-    WHERE id = ?
-  `).run(transferId, transferId ? 'transferred' : 'pending_account', tx.id);
 
   db.prepare("UPDATE jobs SET status = 'pending_review', completed_at = datetime('now') WHERE id = ?")
     .run(req.params.id);
 
-  const msg = tx.student_stripe_account
-    ? 'Payment released and sent to the student. Both parties can now leave a rating.'
-    : 'Work marked complete. The student needs to set up a payout account to receive their earnings.';
-
-  return res.json({ message: msg });
+  const payMethod = job.payment_method === 'check' ? 'by check' : 'in cash';
+  return res.json({
+    message: `Work marked complete! Remember to pay the student $${parseFloat(job.pay).toFixed(2)} ${payMethod}. Both parties can now leave a rating.`,
+  });
 });
 
 // ── POST /api/jobs/:id/rate ──────────────────────────────────

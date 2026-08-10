@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (job.has_stairs)        badges.push('🪜 Stairs');
         if (job.heavy_lifting)     badges.push('💪 Heavy lifting');
         if (job.duration_estimate) badges.push('⏱ ' + escHtml(job.duration_estimate));
+        if (job.payment_method)    badges.push(job.payment_method === 'check' ? '📝 Paid by check' : '💵 Paid in cash');
         const badgeHtml = badges.length
           ? `<div class="job-badges">${badges.map(b => `<span class="job-badge">${b}</span>`).join('')}</div>`
           : '';
@@ -340,6 +341,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     formData.append('has_pets',       String(document.getElementById('hasPets')?.checked || false));
     formData.append('has_stairs',     String(document.getElementById('hasStairs')?.checked || false));
     formData.append('heavy_lifting',  String(document.getElementById('heavyLifting')?.checked || false));
+    formData.append('payment_method', document.getElementById('paymentMethod')?.value || 'cash');
     formData.append('address',        tAddr);
     formData.append('city',           city);
     formData.append('state',          state);

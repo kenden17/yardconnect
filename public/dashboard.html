@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/main.css" />
-  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body class="dash-page">
 
@@ -88,16 +87,6 @@
       <!-- EARNINGS -->
       <section class="dash-panel" id="panel-payments">
         <h1 class="dash-title">Earnings</h1>
-        <div id="stripeOnboardSection" class="hidden">
-          <div class="dash-alert dash-alert--warn">
-            <div class="dash-alert__icon">⚠️</div>
-            <div class="dash-alert__body">
-              <strong>You won't get paid without a payout account.</strong>
-              <span>Connect a bank account so Campus Hands can send you money when a poster releases payment. Takes about 2 minutes.</span>
-            </div>
-            <button class="btn btn--sm dash-alert__btn" id="stripeOnboardBtn">Set Up Payouts →</button>
-          </div>
-        </div>
         <h2 class="dash-subtitle">Transaction History</h2>
         <div id="txList"><div class="loading-state">Loading…</div></div>
       </section>
@@ -116,10 +105,6 @@
         <div class="info-card" style="margin-top:16px">
           <h3 style="margin-bottom:8px">Account Info</h3>
           <p class="text-dim" style="font-size:.88rem">Registered with your school email. To change your email or password, contact support.</p>
-        </div>
-        <div class="info-card" style="margin-top:12px" id="payoutSettingsCard">
-          <h3 style="margin-bottom:8px">Payout Account</h3>
-          <p class="text-dim" id="payoutStatus" style="font-size:.88rem">Checking…</p>
         </div>
       </section>
 

@@ -232,6 +232,14 @@
           </div>
         </div>
         <div class="form-group">
+          <label for="paymentMethod">Payment Method *</label>
+          <select id="paymentMethod" required>
+            <option value="cash">💵 Cash</option>
+            <option value="check">📝 Check</option>
+          </select>
+          <span class="field-hint">How you will pay the student when the work is done.</span>
+        </div>
+        <div class="form-group">
           <label style="margin-bottom:8px;display:block;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)">Job Site Disclosures</label>
           <label class="agree-label" style="margin-bottom:8px">
             <input type="checkbox" id="hasPets" /> <span>There are pets on the property</span>
