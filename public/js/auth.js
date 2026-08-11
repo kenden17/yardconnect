@@ -82,7 +82,7 @@ const Auth = (() => {
         updateNav();
         return;
       }
-      // Refresh stored user data with latest from server (e.g. has_stripe updated)
+      // Refresh stored user data with latest from server
       const data = await res.json().catch(() => null);
       if (data?.user) {
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));

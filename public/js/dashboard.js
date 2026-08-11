@@ -263,17 +263,22 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>`;
         return;
       }
+      const total = jobs.reduce((sum, j) => sum + parseFloat(j.pay || 0), 0);
       txList.innerHTML = `
+        <div class="earnings-total">
+          <span class="earnings-total__num">$${(total * 0.95).toFixed(2)}</span>
+          <span class="earnings-total__label">Total earned (after 5% fee)</span>
+        </div>
         <div class="tx-list">
           ${jobs.map(j => `
             <div class="tx-row">
               <div class="tx-info">
                 <h4>${escHtml(j.title)}</h4>
-                <p>Posted by ${escHtml(j.poster_name)} · ${fmtDate(j.created_at)}</p>
+                <p>${escHtml(j.poster_name)} · ${fmtDate(j.created_at)}</p>
               </div>
               <div class="tx-right">
                 <span class="tx-amount">$${parseFloat(j.pay).toFixed(2)}</span>
-                <span class="tx-status">${escHtml(j.status)}</span>
+                <span class="tx-badge">${j.payment_method === 'check' ? '📝 Check' : '💵 Cash'}</span>
               </div>
             </div>`).join('')}
         </div>`;
@@ -283,9 +288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Settings ─────────────────────────────────────────────
-  function loadSettings() {
-    // Settings panel — no payout info needed
-  }
+  function loadSettings() { /* populated by static HTML */ }
 
   // ── Init ─────────────────────────────────────────────────
   loadOverview();

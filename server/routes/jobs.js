@@ -14,7 +14,7 @@ const { validateZipState, validatePhone, validateIdNumber, validateEmailDomain, 
 const router = express.Router();
 const { requirePosterOtp } = require('../middleware/posterOtp');
 
-// Stripe — removed. Payments are now cash or check, handled offline.
+// Payments are cash or check, handled offline between poster and student.
 
 const CATEGORIES = [
   'Errands & Delivery',
@@ -353,7 +353,7 @@ router.post('/:id/mark-complete', [
 
 // ── POST /api/jobs/:id/release ───────────────────────────────
 // Poster confirms work done: active → pending_review
-// Payment is handled offline (cash or check) — no Stripe involved.
+// Payment is handled directly by the poster (cash or check).
 router.post('/:id/release', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
   body('otp_code').trim().notEmpty().withMessage('Verification code required.'),

@@ -18,7 +18,6 @@ db.exec(`
     dob               TEXT NOT NULL DEFAULT '',
     verified          INTEGER NOT NULL DEFAULT 1,
     verify_token      TEXT,
-    stripe_account_id TEXT,
     avg_rating        REAL DEFAULT 0,
     rating_count      INTEGER DEFAULT 0,
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
@@ -68,7 +67,6 @@ db.exec(`
     amount                REAL NOT NULL,
     platform_fee          REAL NOT NULL,
     student_payout        REAL NOT NULL,
-    stripe_payment_intent TEXT,
     status                TEXT NOT NULL DEFAULT 'pending'
                           CHECK(status IN ('pending','paid','failed','refunded')),
     created_at            TEXT NOT NULL DEFAULT (datetime('now'))

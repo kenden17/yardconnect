@@ -17,10 +17,6 @@ if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET is not set.');
   process.exit(1);
 }
-if (!process.env.ADMIN_SECRET) {
-  console.error('FATAL: ADMIN_SECRET is not set.');
-  process.exit(1);
-}
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -77,11 +73,11 @@ app.use('/api/payments',     require('./routes/payments'));
 app.use('/api/admin',        require('./routes/admin'));
 app.use('/api/poster',       require('./routes/poster-otp'));
 
-// Proxy admin ID photo requests — verifies admin secret before serving the file
+// Proxy admin ID photo requests — verifies admin code before serving the file
 app.get('/api/admin/id-photo/:filename', (req, res) => {
-  const secret = process.env.ADMIN_SECRET;
-  const key    = req.headers['x-admin-secret'];
-  if (!secret || !key || key !== secret) return res.status(401).send('Unauthorized');
+  const ADMIN_CODE = 'campushands2026';
+  const key = req.headers['x-admin-secret'];
+  if (!key || key !== ADMIN_CODE) return res.status(401).send('Unauthorized');
 
   const safeName = path.basename(req.params.filename);
   const filePath = path.join(__dirname, '..', 'uploads', 'ids', safeName);

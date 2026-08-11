@@ -13,8 +13,8 @@ const { isStudentAgeValid } = require('../utils/ageCheck');
 const router = express.Router();
 
 function toSessionUser(user) {
-  const { password, verify_token, stripe_account_id, ...safe } = user;
-  return { ...safe, has_stripe: !!stripe_account_id };
+  const { password, verify_token, ...safe } = user;
+  return safe;
 }
 
 const loginLimiter = rateLimit({
@@ -133,8 +133,8 @@ router.post('/logout', (req, res) => {
 
 // ── GET /api/auth/me ────────────────────────────────────────
 router.get('/me', require('../middleware/auth').requireAuth, (req, res) => {
-  const { stripe_account_id, ...safeUser } = req.user;
-  return res.json({ user: { ...safeUser, has_stripe: !!stripe_account_id } });
+  const { password, verify_token, ...safeUser } = req.user;
+  return res.json({ user: safeUser });
 });
 
 module.exports = router;
