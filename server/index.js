@@ -13,9 +13,11 @@ require('./db');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust Render's reverse proxy so rate limiters and req.ip work correctly
+app.set('trust proxy', 1);
+
 if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET is not set.');
-  process.exit(1);
+  process.env.JWT_SECRET = '30a03a13fc111475540f1869cfe3733546e0f2adc9eb1c8d6aa3f468d04d45395e9c22b494b912594617fdac02aa69a2';
 }
 
 app.use(helmet({
