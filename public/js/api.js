@@ -1,6 +1,6 @@
 // public/js/api.js — Shared API helper
 const API = (() => {
-  const BASE = '/api';
+  const BASE = 'https://campushands.onrender.com/api';
 
   async function request(method, path, body = null) {
     const token = localStorage.getItem('ch_token');
