@@ -1,11 +1,9 @@
 # render.yaml — Render deployment blueprint
 # Docs: https://render.com/docs/blueprint-spec
 #
-# To use:
-#   1. Push this file to GitHub
-#   2. On render.com: New → Blueprint → connect your repo
-#   3. Set the secret environment variables marked [REQUIRED] in the Render dashboard
-#      (Render won't let you store real secrets in this file)
+# Secret env vars (JWT_SECRET, ADMIN_CODE, APP_URL, SMTP_*)
+# are set manually in the Render dashboard under Environment.
+# Only non-secret values are defined here.
 
 services:
   - type: web
@@ -14,15 +12,10 @@ services:
     region: oregon
     plan: free
 
-    # Build & start
     buildCommand: npm install
     startCommand: npm start
-
-    # Health check — Render uses this to confirm the service is up
     healthCheckPath: /health
 
-    # Persistent disk — keeps SQLite DB and uploaded ID photos across deploys
-    # Free tier: 1 GB included
     disk:
       name: campus-hands-data
       mountPath: /data
@@ -31,37 +24,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-
       - key: PORT
         value: 10000
-
       - key: DB_PATH
         value: /data/database.sqlite
-
       - key: UPLOAD_DIR
         value: /data/uploads
-
-      # ── Set these in the Render dashboard (do NOT put real values here) ──
-      - key: JWT_SECRET
-        sync: false   # Render will prompt you to enter this manually
-
-      - key: ADMIN_CODE
-        sync: false
-
-      - key: APP_URL
-        sync: false   # Set to: https://your-app-name.onrender.com
-
-      - key: SMTP_HOST
-        sync: false
-
-      - key: SMTP_PORT
-        sync: false
-
-      - key: SMTP_USER
-        sync: false
-
-      - key: SMTP_PASS
-        sync: false
-
-      - key: EMAIL_FROM
-        sync: false
