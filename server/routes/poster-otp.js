@@ -5,16 +5,15 @@ const { randomInt } = require('crypto');
 const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const db = require('../db');
-const { sendOtpEmail } = require('../utils/email');
+const { sendOtpEmail, SMTP_CONFIGURED } = require('../utils/email');
 
 const router = express.Router();
 
-const VALID_ACTIONS = ['accept', 'reject', 'payment', 'release'];
+const VALID_ACTIONS = ['accept', 'reject', 'release'];
 const ACTION_LABELS = {
   accept:  'accept an applicant',
   reject:  'decline an applicant',
-  payment: 'process payment',
-  release: 'release payment',
+  release: 'mark work as complete',
 };
 
 // In-memory rate limiter: 3 OTP requests per IP+email per hour
@@ -63,7 +62,6 @@ router.post('/request-otp', [
   `).run(id, email, await bcrypt.hash(code, 10), action, expiresAt);
 
   // Send email if SMTP is configured, otherwise log to console for dev
-  const { SMTP_CONFIGURED } = require('../utils/email');
   if (SMTP_CONFIGURED) {
     try {
       await sendOtpEmail(email, code, ACTION_LABELS[action]);

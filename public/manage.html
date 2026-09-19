@@ -389,14 +389,12 @@
         document.getElementById(id)?.classList.add('hidden');
       });
 
-      const payout = (job.pay * 0.95).toFixed(2);
       const payMethodLabel = job.payment_method === 'check' ? '📝 Check' : '💵 Cash';
       document.getElementById('taskInfo').innerHTML = `
         <div class="info-card">
           <h3>${escHtml(job.title)}</h3>
           <p style="color:var(--text-mid)">${escHtml(job.category)} &middot; ${escHtml(job.city)}, ${escHtml(job.state)}</p>
-          <p style="margin-top:6px">Pay: <strong style="color:var(--accent)">$${parseFloat(job.pay).toFixed(2)}</strong>
-            <span style="font-size:.8rem;color:var(--dim)"> &middot; Student receives $${payout}</span></p>
+          <p style="margin-top:6px">Pay: <strong style="color:var(--accent)">$${parseFloat(job.pay).toFixed(2)}</strong></p>
           <p style="margin-top:4px;font-size:.85rem">Payment method: <strong>${payMethodLabel}</strong></p>
           <p id="statusLine" style="margin-top:6px">Status: <strong>${getLabel(job.status)}</strong></p>
           <p style="margin-top:4px;font-size:.8rem;color:var(--dim)">Posted ${fmtDate(job.created_at)}</p>

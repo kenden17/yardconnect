@@ -4,15 +4,20 @@ const fs       = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { body, validationResult, query } = require('express-validator');
 const jwt      = require('jsonwebtoken');
-require('dotenv').config();
 const db       = require('../db');
 const { requireAuth }       = require('../middleware/auth');
+const { requirePosterOtp }  = require('../middleware/posterOtp');
 const { uploadIdPhoto }     = require('../utils/upload');
 const { isPosterOldEnough } = require('../utils/ageCheck');
-const { validateZipState, validatePhone, validateIdNumber, validateEmailDomain, validateFullName } = require('../utils/validate');
+const {
+  validateZipState,
+  validatePhone,
+  validateIdNumber,
+  validateEmailDomain,
+  validateFullName,
+} = require('../utils/validate');
 
 const router = express.Router();
-const { requirePosterOtp } = require('../middleware/posterOtp');
 
 // Payments are cash or check, handled offline between poster and student.
 
@@ -331,7 +336,7 @@ router.post('/', (req, res, next) => {
 });
 
 // ── POST /api/jobs/:id/mark-complete ────────────────────────
-// Sets job status to active once a student is accepted.
+// Poster manually advances an assigned job to active (work has begun).
 router.post('/:id/mark-complete', [
   body('poster_email').isEmail().normalizeEmail().withMessage('Email required.'),
 ], (req, res) => {
@@ -344,7 +349,7 @@ router.post('/:id/mark-complete', [
     return res.status(403).json({ error: 'Email does not match this task.' });
   }
   if (job.status !== 'assigned') {
-    return res.status(400).json({ error: 'Task must be assigned to mark active.' });
+    return res.status(400).json({ error: 'Task must be assigned before marking active.' });
   }
 
   db.prepare("UPDATE jobs SET status = 'active' WHERE id = ?").run(req.params.id);

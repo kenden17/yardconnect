@@ -86,7 +86,6 @@ async function sendOtpEmail(email, code, action) {
       `,
     });
     if (!SMTP_CONFIGURED) {
-      const parsed = JSON.parse(info.message);
       console.log(`\n📧 [DEV] OTP email to: ${email}`);
       console.log(`   Action: ${action}`);
       console.log(`   ✉️  CODE: ${code}\n`);

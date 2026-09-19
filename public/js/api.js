@@ -1,12 +1,12 @@
 // public/js/api.js — Shared API helper
 const API = (() => {
-  const BASE = 'https://campushands.onrender.com/api';
+  const BASE = '/api';
 
   async function request(method, path, body = null) {
     const token = localStorage.getItem('ch_token');
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (body)  headers['Content-Type'] = 'application/json';
+    if (body)  headers['Content-Type']  = 'application/json';
 
     const opts = { method, headers, credentials: 'include' };
     if (body) opts.body = JSON.stringify(body);
@@ -14,8 +14,8 @@ const API = (() => {
     let res;
     try {
       res = await fetch(BASE + path, opts);
-    } catch (networkErr) {
-      throw new Error('Cannot reach the server. Please check your connection and try again.');
+    } catch {
+      throw new Error('Cannot reach the server. Check your connection and try again.');
     }
 
     const data = await res.json().catch(() => ({}));
@@ -24,23 +24,23 @@ const API = (() => {
   }
 
   return {
-    // Auth (students only)
+    // Auth
     register: (name, email, pw, dob, agreedToGuidelines) =>
       request('POST', '/auth/register', { name, email, password: pw, dob, agreed_to_guidelines: agreedToGuidelines }),
-    login:    (email, pw)       => request('POST', '/auth/login',    { email, password: pw }),
-    logout:   ()                => request('POST', '/auth/logout'),
-    me:       ()                => request('GET',  '/auth/me'),
+    login:    (email, pw) => request('POST', '/auth/login',  { email, password: pw }),
+    logout:   ()          => request('POST', '/auth/logout'),
+    me:       ()          => request('GET',  '/auth/me'),
 
-    // Jobs / Tasks
+    // Jobs
     getJobs:       (params = {}) => request('GET', '/jobs?' + new URLSearchParams(params).toString()),
     getCategories: ()            => request('GET', '/jobs/categories'),
     myJobsStudent: ()            => request('GET', '/jobs/mine/student'),
-    rateJob:       (jobId, data) => request('POST', `/jobs/${jobId}/rate`, data),
+    rateJob:       (id, data)    => request('POST', `/jobs/${id}/rate`, data),
 
-    // Applications (student applies)
+    // Applications
     apply: (job_id, message) => request('POST', '/applications', { job_id, message }),
 
-    // Payments (student)
-    paymentHistory: () => request('GET',  '/payments/history'),
+    // Earnings
+    paymentHistory: () => request('GET', '/payments/history'),
   };
 })();

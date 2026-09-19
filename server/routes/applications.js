@@ -52,7 +52,7 @@ router.post('/', requireAuth, [
   return res.status(201).json({ message: 'Application submitted! The poster will be in touch.' });
 });
 
-// ── GET /api/applications/job/:jobId — poster views applicants
+// ── GET /api/applications/job/:jobId — poster views applicants ─────────────
 // Secured by matching poster_email in query param (no account required)
 router.get('/job/:jobId', (req, res) => {
   const { poster_email } = req.query;

@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (name === 'overview')     loadOverview();
     if (name === 'applications') loadMyJobs();
     if (name === 'payments')     loadPayments();
-    if (name === 'settings')     loadSettings();
     // Close mobile sidebar after nav
     sidebar.classList.remove('open');
     toggleBtn?.classList.remove('open');
@@ -266,8 +265,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const total = jobs.reduce((sum, j) => sum + parseFloat(j.pay || 0), 0);
       txList.innerHTML = `
         <div class="earnings-total">
-          <span class="earnings-total__num">$${(total * 0.95).toFixed(2)}</span>
-          <span class="earnings-total__label">Total earned (after 5% fee)</span>
+          <span class="earnings-total__num">$${total.toFixed(2)}</span>
+          <span class="earnings-total__label">Total earned</span>
         </div>
         <div class="tx-list">
           ${jobs.map(j => `
@@ -286,9 +285,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       txList.innerHTML = `<div class="empty-state"><p>${escHtml(err.message)}</p></div>`;
     }
   }
-
-  // ── Settings ─────────────────────────────────────────────
-  function loadSettings() { /* populated by static HTML */ }
 
   // ── Init ─────────────────────────────────────────────────
   loadOverview();

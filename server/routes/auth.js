@@ -7,6 +7,7 @@ const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
 const db                    = require('../db');
+const { requireAuth }       = require('../middleware/auth');
 const { isSchoolEmail }     = require('../utils/schoolEmail');
 const { isStudentAgeValid } = require('../utils/ageCheck');
 
@@ -132,7 +133,7 @@ router.post('/logout', (req, res) => {
 });
 
 // ── GET /api/auth/me ────────────────────────────────────────
-router.get('/me', require('../middleware/auth').requireAuth, (req, res) => {
+router.get('/me', requireAuth, (req, res) => {
   const { password, verify_token, ...safeUser } = req.user;
   return res.json({ user: safeUser });
 });
