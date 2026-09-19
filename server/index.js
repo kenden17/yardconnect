@@ -14,6 +14,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 if (!process.env.JWT_SECRET) {
+  console.error('Available env keys:', Object.keys(process.env).filter(k => !k.includes('npm')).join(', '));
   throw new Error('JWT_SECRET environment variable is not set. Add it to your .env file.');
 }
 
