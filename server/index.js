@@ -77,12 +77,13 @@ app.use('/api/poster',       require('./routes/poster-otp'));
 
 // Proxy admin ID photo requests — verifies admin code before serving the file
 app.get('/api/admin/id-photo/:filename', (req, res) => {
-  const ADMIN_CODE = 'campushands2026';
+  const ADMIN_CODE = process.env.ADMIN_CODE;
   const key = req.headers['x-admin-secret'];
-  if (!key || key !== ADMIN_CODE) return res.status(401).send('Unauthorized');
+  if (!key || !ADMIN_CODE || key !== ADMIN_CODE) return res.status(401).send('Unauthorized');
 
   const safeName = path.basename(req.params.filename);
-  const filePath = path.join(__dirname, '..', 'uploads', 'ids', safeName);
+  const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
+  const filePath = path.join(uploadDir, 'ids', safeName);
   res.sendFile(filePath, err => {
     if (err) res.status(404).send('Not found');
   });

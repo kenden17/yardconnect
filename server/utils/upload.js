@@ -3,16 +3,20 @@ const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'ids');
+// On Render, set UPLOAD_DIR to your persistent disk mount path (e.g. /data/uploads).
+// Locally falls back to <project-root>/uploads.
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.join(process.env.UPLOAD_DIR, 'ids')
+  : path.join(__dirname, '..', '..', 'uploads', 'ids');
 
-// Make sure upload directory exists
+// Ensure the directory exists on first boot
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
+  filename:    (_req, file, cb) => {
     const ext  = path.extname(file.originalname).toLowerCase();
     const name = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
     cb(null, name);
